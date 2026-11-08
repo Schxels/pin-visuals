@@ -12,7 +12,8 @@
     "LocalPlayerMixin",
     "ParticleEngineMixin",
     "EndCrystalRendererMixin",
-    "EntityRendererMixin"
+    "EntityRendererMixin",
+    "FogRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

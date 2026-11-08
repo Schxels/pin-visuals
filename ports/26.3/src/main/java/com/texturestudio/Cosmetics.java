@@ -28,7 +28,9 @@ public final class Cosmetics {
 		/** Colour of the flash when a mob or player is hit (see HitColor); NONE = vanilla red. */
 		HIT,
 		/** Coloured ghost when another player pops a totem (see PopChams); NONE = off. */
-		POP
+		POP,
+		/** Coloured fog, mist and smoke around you (see Atmosphere); NONE = off. */
+		ATMO
 	}
 
 	public record Item(String id, String name, Kind kind, int color) {
@@ -135,6 +137,16 @@ public final class Cosmetics {
 			new Item("white", "Spirit", Kind.POP, 0xFFF1F5F9),
 			new Item("rainbow", "Rainbow", Kind.POP, 0xFFFACC15));
 
+	public static final List<Item> ATMOSPHERES = List.of(
+			new Item("mystic", "Mystic Haze", Kind.ATMO, 0xFFA855F7),
+			new Item("abyss", "Deep Ocean", Kind.ATMO, 0xFF3B82F6),
+			new Item("ember", "Ember Storm", Kind.ATMO, 0xFFF97316),
+			new Item("frost", "Frost", Kind.ATMO, 0xFFBFDBFE),
+			new Item("sakura", "Sakura", Kind.ATMO, 0xFFF9A8D4),
+			new Item("toxic", "Toxic Swamp", Kind.ATMO, 0xFF84CC16),
+			new Item("firefly", "Firefly Night", Kind.ATMO, 0xFFFDE047),
+			new Item("void", "Void", Kind.ATMO, 0xFF4C1D95));
+
 	// Aktuelle Auswahl (von der Konfiguration gespiegelt, damit das Rendern ohne Dateizugriff auskommt)
 	public static volatile String cape = NONE;
 	public static volatile String hat = NONE;
@@ -145,6 +157,7 @@ public final class Cosmetics {
 	public static volatile String spotify = NONE;
 	public static volatile String hitColor = NONE;
 	public static volatile String popChams = NONE;
+	public static volatile String atmosphere = NONE;
 
 	private static final Map<String, Hat> HAT_MODELS = new HashMap<>();
 	private static final Map<String, Wing> WING_MODELS = new HashMap<>();
@@ -162,6 +175,7 @@ public final class Cosmetics {
 		spotify = valid(c.spotify, SPOTIFY_STYLES);
 		hitColor = valid(c.hitColor, HIT_COLORS);
 		popChams = valid(c.popChams, POP_STYLES);
+		atmosphere = valid(c.atmosphere, ATMOSPHERES);
 	}
 
 	private static String valid(String id, List<Item> list) {
@@ -186,6 +200,7 @@ public final class Cosmetics {
 			case SPOTIFY -> SPOTIFY_STYLES;
 			case HIT -> HIT_COLORS;
 			case POP -> POP_STYLES;
+			case ATMO -> ATMOSPHERES;
 		};
 	}
 
@@ -200,12 +215,13 @@ public final class Cosmetics {
 			case SPOTIFY -> spotify;
 			case HIT -> hitColor;
 			case POP -> popChams;
+			case ATMO -> atmosphere;
 		};
 	}
 
 	/** Kinds that are effects, not things worn on the player model. */
 	public static boolean isEffect(Kind k) {
-		return k == Kind.KILL || k == Kind.LYRICS || k == Kind.ARMOR || k == Kind.SPOTIFY || k == Kind.HIT || k == Kind.POP;
+		return k == Kind.KILL || k == Kind.LYRICS || k == Kind.ARMOR || k == Kind.SPOTIFY || k == Kind.HIT || k == Kind.POP || k == Kind.ATMO;
 	}
 
 	public static Item item(Kind k, String id) {
@@ -256,6 +272,10 @@ public final class Cosmetics {
 			case POP -> {
 				popChams = v;
 				c.popChams = v;
+			}
+			case ATMO -> {
+				atmosphere = v;
+				c.atmosphere = v;
 			}
 		}
 		c.save();

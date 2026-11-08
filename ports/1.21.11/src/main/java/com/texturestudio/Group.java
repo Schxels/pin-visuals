@@ -81,6 +81,7 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 		add("fx_spotify", "Spotify Overlay", 0xFF1DB954, true, r -> false);
 		add("fx_hit", "Hit Colour", 0xFFF43F5E, true, r -> false);
 		add("fx_pop", "Pop Chams", 0xFFFACC15, true, r -> false);
+		add("fx_atmo", "Atmosphere", 0xFFA855F7, true, r -> false);
 
 		// Extras: alles, was oben nicht erfasst wurde, nach Ordner
 		add("x_block", "Blocks", 0xFF84CC16, true, r -> r.startsWith("block/"), "block/dirt", "block/oak_planks");
@@ -103,6 +104,7 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 			case "fx_spotify" -> Cosmetics.Kind.SPOTIFY;
 			case "fx_hit" -> Cosmetics.Kind.HIT;
 			case "fx_pop" -> Cosmetics.Kind.POP;
+			case "fx_atmo" -> Cosmetics.Kind.ATMO;
 			default -> null;
 		};
 	}

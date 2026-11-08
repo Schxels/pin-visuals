@@ -27,6 +27,9 @@ public final class Tweaks {
 	/** Spotify lyrics drawn over blocks (true) or hidden where blocks cover the sky (false). */
 	public static volatile boolean lyricsThroughBlocks = true;
 	public static volatile boolean spotifyRight = false;
+	public static volatile float popSeconds = 1.3f;
+	public static volatile int atmoRange = 32;
+	public static volatile int atmoStrength = 60;
 
 	/** How far the fire overlay is moved down (screen units, the overlay is about 1 high). */
 	public static final float LOW_FIRE_OFFSET = -0.3f;
@@ -47,6 +50,9 @@ public final class Tweaks {
 		hideFarItems = c.hideFarItems;
 		lyricsThroughBlocks = c.lyricsThroughBlocks;
 		spotifyRight = c.spotifyRight;
+		popSeconds = Math.max(0.5f, Math.min(5f, c.popSeconds));
+		atmoRange = Math.max(8, Math.min(96, c.atmoRange));
+		atmoStrength = Math.max(10, Math.min(100, c.atmoStrength));
 	}
 
 	/** Are all FPS tweaks on? */

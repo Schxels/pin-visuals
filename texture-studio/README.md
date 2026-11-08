@@ -124,7 +124,15 @@ the lines follow the view direction only slowly so they drift a little when turn
   players and spawns a client-only `RemotePlayer` copy (negative id, random UUID, otherwise the level refuses it,
   invisible) in the same pose. `CosmeticLayer` draws that copy as an emissive translucent model in the picked colour;
   it rises 0.9 blocks, grows a little and fades out over 1.3 s. Clicking a style spawns a preview ghost of yourself
-  3 blocks in front. 26.3's `submitModel` has no crumbling argument.
+  3 blocks in front. 26.3's `submitModel` has no crumbling argument. The "Ghost time" slider (0.5 .. 5 s,
+  `MixConfig.popSeconds`) sets how long a ghost stays; it stays clear and fades out at the end.
+- `Atmosphere` (Kind ATMO, group `fx_atmo`): coloured mood around you with sliders Range (8 .. 96 blocks) and
+  Strength (10 .. 100 %). `FogRendererMixin` pulls Minecraft's fog in to the range and tints it (also sky and clouds,
+  not under water / lava); 26.x changes the returned `FogData`, 1.21.11 changes the arguments of `updateBuffer`.
+  Around the player (never closer than 5.5 blocks, so puffs do not cover the screen) it spawns coloured dust mist,
+  tinted swirls, smoke and one style particle (snowflakes, cherry petals, flames, fireflies ...), plus a faint
+  coloured vignette on the HUD. Styles: Mystic Haze, Deep Ocean, Ember Storm, Frost, Sakura, Toxic Swamp,
+  Firefly Night, Void.
 
 ## Pig packs
 

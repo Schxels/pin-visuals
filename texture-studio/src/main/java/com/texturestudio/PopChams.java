@@ -17,10 +17,9 @@ import net.minecraft.world.entity.player.Player;
 public final class PopChams {
 
 	/** A ghost: base position and when it appeared. */
-	public record Ghost(double x, double y, double z, long born) {
+	public record Ghost(double x, double y, double z, long born, long lifeMs) {
 	}
 
-	public static final long LIFE_MS = 1300;
 	private static final double RISE = 0.9;
 
 	private static final Map<Integer, Ghost> GHOSTS = new ConcurrentHashMap<>();
@@ -79,7 +78,7 @@ public final class PopChams {
 			g.setInvisible(true);
 			g.noPhysics = true;
 			g.setNoGravity(true);
-			GHOSTS.put(id, new Ghost(x, y, z, System.currentTimeMillis()));
+			GHOSTS.put(id, new Ghost(x, y, z, System.currentTimeMillis(), Math.round(Tweaks.popSeconds * 1000)));
 			level.addEntity(g);
 		} catch (RuntimeException e) {
 			TextureStudioClient.LOGGER.warn("Pin Visuals: could not show the pop ghost", e);
@@ -93,7 +92,7 @@ public final class PopChams {
 
 	/** 0..1 how far the ghost's life is. */
 	public static float progress(Ghost g) {
-		return Math.min(1f, (System.currentTimeMillis() - g.born()) / (float) LIFE_MS);
+		return Math.min(1f, (System.currentTimeMillis() - g.born()) / (float) Math.max(1, g.lifeMs()));
 	}
 
 	/** Called every client tick: moves the ghosts up and removes old ones. */

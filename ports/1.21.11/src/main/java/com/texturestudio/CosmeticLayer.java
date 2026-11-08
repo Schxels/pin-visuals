@@ -35,7 +35,7 @@ public class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 		if (ghost != null) {
 			// totem pop ghost: the posed player model as a glowing see-through silhouette that fades out
 			float f = PopChams.progress(ghost);
-			int a = Math.round(0xA0 * (1f - f) * (1f - f * 0.3f));
+			int a = (int) Math.round(0xA0 * (1 - Math.pow(f, 2.5))); // stays clear, fades at the end
 			if (a > 2) {
 				int c = PopChams.color(Cosmetics.popChams, System.currentTimeMillis());
 				float grow = 1f + f * 0.12f;

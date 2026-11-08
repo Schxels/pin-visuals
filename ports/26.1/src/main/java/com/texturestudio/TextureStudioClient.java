@@ -45,6 +45,7 @@ public class TextureStudioClient implements ClientModInitializer {
 
 		// Kill effects and the Spotify lyrics in the sky (both under Extras)
 		KillEffects.register();
+		HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath(MOD_ID, "atmosphere"), Atmosphere::extractHud);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), LyricsHud::extract);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "armor"), ArmorHud::extract);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "spotify"), SpotifyHud::extract);
@@ -55,6 +56,7 @@ public class TextureStudioClient implements ClientModInitializer {
 			Lyrics.tick();
 			HitColor.tick();
 			PopChams.tick(client);
+			Atmosphere.tick(client);
 			while (openKey.consumeClick()) {
 				if (client.screen == null) {
 					client.setScreen(new TextureStudioScreen(null));

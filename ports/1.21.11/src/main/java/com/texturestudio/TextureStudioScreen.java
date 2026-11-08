@@ -800,6 +800,7 @@ public class TextureStudioScreen extends Screen {
 				case "fx_spotify" -> Items.MUSIC_DISC_CAT;
 				case "fx_hit" -> Items.IRON_SWORD;
 				case "fx_pop" -> Items.TOTEM_OF_UNDYING;
+				case "fx_atmo" -> Items.CAMPFIRE;
 				case "obsidian" -> Items.OBSIDIAN;
 				case "anchor" -> Items.RESPAWN_ANCHOR;
 				case "armor" -> Items.DIAMOND_CHESTPLATE;
@@ -1651,6 +1652,59 @@ public class TextureStudioScreen extends Screen {
 			case SPOTIFY -> drawSpotifyPreview(g, it, x, y, w, h);
 			case HIT -> drawHitPreview(g, it, x, y, w, h);
 			case POP -> drawPopPreview(g, it, x, y, w, h);
+			case ATMO -> drawAtmoPreview(g, it, x, y, w, h);
+		}
+	}
+
+	/** Atmosphere card: a little misty landscape in the style's colours with drifting mist and particles. */
+	private void drawAtmoPreview(GuiGraphics g, Cosmetics.Item it, int x, int y, int w, int h) {
+		int[] pal = Atmosphere.palette(it.id());
+		long ms = System.currentTimeMillis();
+		FillBatch.flush(g).enableScissor(x, y, x + w, y + h); // mist and glow stay inside the card
+		try {
+			drawAtmoScene(g, it, pal, ms, x, y, w, h);
+		} finally {
+			FillBatch.flush(g).disableScissor();
+		}
+	}
+
+	private void drawAtmoScene(GuiGraphics g, Cosmetics.Item it, int[] pal, long ms, int x, int y, int w,
+			int h) {
+		vgrad(g, x, y, w, h, 5, 5, pal[2], mix(pal[3], 0xFFFFFFFF, 0.08f));
+		// soft glow of the "moon" / light source
+		softGlow(g, x + w * 3 / 5, y + h / 8, w / 3, h / 3, pal[1], 0x70);
+		// two rows of hills, the far one paler (fog)
+		int far = mix(pal[2], pal[3], 0.55f);
+		int near = mix(pal[2], 0xFF000000, 0.35f);
+		for (int i = 0; i < w; i += 2) {
+			double u = i / (double) w;
+			int hf = (int) (h * (0.30 + 0.07 * Math.sin(u * 7.1 + 1.3) + 0.04 * Math.sin(u * 17.0)));
+			int hn = (int) (h * (0.18 + 0.06 * Math.sin(u * 5.3 + 4.0) + 0.03 * Math.sin(u * 13.0 + 2)));
+			FillBatch.fill(g, x + i, y + h - hf, x + Math.min(w, i + 2), y + h - 4, far);
+			FillBatch.fill(g, x + i, y + h - hn, x + Math.min(w, i + 2), y + h - 4, near);
+		}
+		rrect(g, x, y + h - 5, w, 5, 2, near);
+		// drifting mist bands
+		for (int b = 0; b < 3; b++) {
+			int by = y + h - h / 3 + b * h / 9 - h / 10;
+			int off = (int) ((ms / (60 + b * 25)) % (w * 2)) - w / 2;
+			for (int i = 0; i < 2; i++) {
+				int bx = x + ((off + i * w) % (w * 2)) - w / 2;
+				softGlow(g, bx, by, w, Math.max(6, h / 5), pal[b % 2], 0x58);
+			}
+		}
+		// particles
+		long seed0 = it.id().hashCode();
+		for (int i = 0; i < 14; i++) {
+			long sd = seed0 * 31 + i * 0x9E3779B97F4A7C15L;
+			float px = ((sd >>> 20) & 0xFFFF) / 65535f;
+			float speed = 0.5f + ((sd >>> 40) & 0xFF) / 255f;
+			float py = ((ms * speed / 4000f) + ((sd >>> 8) & 0xFFF) / 4095f) % 1f;
+			boolean falls = "frost".equals(it.id()) || "sakura".equals(it.id());
+			int dx = x + 2 + (int) (px * (w - 4)) + (int) (Math.sin(ms / 700.0 + i) * 2);
+			int dy = falls ? y + 2 + (int) (py * (h - 6)) : y + h - 4 - (int) (py * (h - 6));
+			int a = (int) (0xE0 * Math.sin(py * Math.PI));
+			FillBatch.fill(g, dx, dy, dx + (i % 4 == 0 ? 2 : 1), dy + (i % 4 == 0 ? 2 : 1), alpha(pal[i % 2], a));
 		}
 	}
 
@@ -2065,6 +2119,8 @@ public class TextureStudioScreen extends Screen {
 			sub = "Flash colour when mobs and players get hit";
 		} else if (kind == Cosmetics.Kind.POP) {
 			sub = "Ghost when an enemy pops a totem";
+		} else if (kind == Cosmetics.Kind.ATMO) {
+			sub = "Coloured fog, mist and smoke around you";
 		} else {
 			sub = minecraft.player == null ? "Preview needs a world" : "Only visible to you";
 		}
@@ -2201,6 +2257,23 @@ public class TextureStudioScreen extends Screen {
 				}
 				rrect(g, on ? sx + sw - 10 : sx + 1, syy + 1, 9, 9, 4, 0xFFFFFFFF);
 			});
+		} else if (kind == Cosmetics.Kind.POP || kind == Cosmetics.Kind.ATMO) {
+			// effect settings instead of the theme row
+			int sy = showSliders ? sliderTop : sliderTop - 24;
+			if (kind == Cosmetics.Kind.POP) {
+				effectSlider(x, sy + 4, w, "Ghost time",
+						() -> String.format(java.util.Locale.ROOT, "%.1f s", config.popSeconds),
+						() -> (config.popSeconds - 0.5f) / 4.5f,
+						f -> config.popSeconds = Math.round((0.5f + f * 4.5f) * 10) / 10f);
+			} else {
+				effectSlider(x, sy, w, "Range", () -> config.atmoRange + " blocks", () -> (config.atmoRange - 8) / 88f,
+						f -> config.atmoRange = 8 + (int) Math.round(f * 88));
+				if (showSliders) {
+					effectSlider(x, sy + 22, w, "Strength", () -> config.atmoStrength + "%",
+							() -> (config.atmoStrength - 10) / 90f,
+							f -> config.atmoStrength = 10 + (int) Math.round(f * 90));
+				}
+			}
 		} else if (showSliders) {
 			int sy = sliderTop;
 			int n = THEMES.size();
@@ -2623,6 +2696,40 @@ public class TextureStudioScreen extends Screen {
 		float h = Math.max(0f, Math.min(1f, (mouseX - hueX) / (float) Math.max(1, hueW - 1)));
 		config.accent = "custom";
 		config.customColor = hsv(h, 0.55f, 1f);
+	}
+
+	// slider of an effect setting (pop ghost time, atmosphere range / strength), dragging == 3
+	private int fxX;
+	private int fxW;
+	private java.util.function.DoubleConsumer fxSet;
+
+	/** Label + value on one row, track below; drag sets f = 0..1 through set (live, saved on release). */
+	private void effectSlider(int x, int y, int w, String label, java.util.function.Supplier<String> value,
+			java.util.function.DoubleSupplier frac,
+			java.util.function.DoubleConsumer set) {
+		int ty = y + 12;
+		hit(x - 2, ty - 5, w + 4, 14, () -> {
+			fxX = x;
+			fxW = w;
+			fxSet = set;
+			dragging = 3;
+			applyEffectSlider(mx);
+		}, (g, t, h) -> {
+			text(g, label, x, y, DIM);
+			rtext(g, value.get(), x + w, y, TEXT);
+			rrect(g, x, ty, w, 4, 2, alpha(TRACK, 0xE0));
+			int kx = x + (int) Math.round(Math.max(0, Math.min(1, frac.getAsDouble())) * (w - 1));
+			hgrad3(g, x, ty, kx - x + 1, 4, 2, accent(), acc2(), acc3());
+			bigKnob(g, kx, ty + 2, acc2(), t);
+		});
+	}
+
+	private void applyEffectSlider(int mouseX) {
+		if (fxSet == null) {
+			return;
+		}
+		fxSet.accept(Math.max(0f, Math.min(1f, (mouseX - fxX) / (float) Math.max(1, fxW - 1))));
+		Tweaks.load(config);
 	}
 
 	private void applyOpacity(int mouseX) {
@@ -3879,6 +3986,8 @@ public class TextureStudioScreen extends Screen {
 					applyHue(mx);
 				} else if (dragging == 2) {
 					applyOpacity(mx);
+				} else if (dragging == 3) {
+					applyEffectSlider(mx);
 				}
 			} else {
 				config.save();

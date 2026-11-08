@@ -66,6 +66,13 @@ public final class MixConfig {
 	public String hitColor = "none";
 	/** Totem pop ghost colour (see PopChams); "none" = off. */
 	public String popChams = "none";
+	/** How long a pop ghost stays, in seconds (0.5 .. 5). */
+	public float popSeconds = 1.3f;
+	/** Atmosphere style (see Atmosphere); "none" = off. */
+	public String atmosphere = "none";
+	/** Atmosphere range in blocks (8 .. 96) and strength in percent (10 .. 100). */
+	public int atmoRange = 32;
+	public int atmoStrength = 60;
 
 	/** Wurde der Spieler schon gefragt, ob er die mitgelieferten Packs installieren will? */
 	public boolean packOfferDone;
