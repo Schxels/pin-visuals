@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.texturestudio.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "GuiGraphicsAccess",
+    "ItemInHandRendererMixin",
+    "LivingEntityPopMixin",
+    "OverlayTextureMixin",
+    "ScreenEffectRendererMixin",
+    "LocalPlayerMixin",
+    "ParticleEngineMixin",
+    "EndCrystalRendererMixin",
+    "EntityRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

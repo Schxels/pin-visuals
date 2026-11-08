@@ -1,0 +1,17 @@
+# build output and caches
+**/.gradle/
+**/build/
+**/run/
+*.log
+
+# third-party content: not ours to redistribute (see README)
+**/packs-original/
+**/packs-library/
+**/bundled/
+releases/
+
+# local / IDE files
+.idea/
+*.iml
+.vscode/
+out/

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "texturestudio",
+  "version": "${version}",
+  "name": "Pin Visuals",
+  "description": "Browse all your texture packs in one place, mix styles from different packs, wear cosmetics and tweak PvP visuals.",
+  "authors": [],
+  "license": "MIT",
+  "icon": "assets/texturestudio/icon.png",
+  "environment": "client",
+  "mixins": [
+    "texturestudio.mixins.json"
+  ],
+  "entrypoints": {
+    "client": [
+      "com.texturestudio.TextureStudioClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.1",
+    "minecraft": "${mc_range}",
+    "java": ">=${java_version}",
+    "fabric-api": "*"
+  }
+}

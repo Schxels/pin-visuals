@@ -1,0 +1,57 @@
+plugins {
+	// Ab Minecraft 26.1 ist das Spiel nicht mehr obfuskiert: Loom ohne Remapping.
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Fabric API und Minecraft-Bibliotheken kommen ueber die Standard-Repos von Loom.
+	// bundled/: geprueft unveraenderte Mod-Jars (Skyboxify, YACL), die per Jar-in-Jar mitgeliefert werden
+	flatDir { dirs 'bundled' }
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Bundled sky mod: Skyboxify + its required config library YACL (unchanged jars, jar-in-jar)
+	include ':skyboxify:3.4+26.2-fabric'
+	runtimeOnly ':skyboxify:3.4+26.2-fabric'
+	include ':yet_another_config_lib_v3:3.9.7+26.2-fabric'
+	runtimeOnly ':yet_another_config_lib_v3:3.9.7+26.2-fabric'
+}
+
+processResources {
+	inputs.property "version", project.version
+	inputs.property "mc_range", project.mc_range
+	inputs.property "java_version", project.java_version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": inputs.properties.version, "mc_range": inputs.properties.mc_range,
+				"java_version": inputs.properties.java_version
+	}
+
+	// Mitgelieferte Pack-Sammlung: alle ZIPs aus packs-library/ landen unter /packlib in der JAR.
+	// Beim ersten Oeffnen fragt die Mod, ob sie in den resourcepacks-Ordner kopiert werden sollen.
+	from('packs-library') {
+		include '*.zip'
+		into 'packlib'
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = project.java_version as int
+}
+
+java {
+	sourceCompatibility = JavaVersion.toVersion(project.java_version)
+	targetCompatibility = JavaVersion.toVersion(project.java_version)
+}

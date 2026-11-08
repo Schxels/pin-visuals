@@ -1,0 +1,11 @@
+Third-party packs added from Modrinth (license as stated on the project page):
+- Scroutopia: https://modrinth.com/resourcepack/pvp  license: Apache-2.0
+- Marlowww+: https://modrinth.com/resourcepack/marlowww-plus  license: GPL-3.0-or-later
+- KingD3fault's: https://modrinth.com/resourcepack/kingd3faults  license: MIT
+- Haimiya Pack: https://modrinth.com/resourcepack/pvp-haimiya-anime-pack  license: CC-BY-4.0
+- MacePvP Essentials: https://modrinth.com/resourcepack/macepvp-essentials  license: GPL-3.0-only
+- Dripped PvP: https://modrinth.com/resourcepack/dripped-pvp  license: MIT
+- Swench Pack: https://modrinth.com/resourcepack/swench-pack  license: MIT
+- White Crystal PvP V3: https://modrinth.com/resourcepack/white-pvp-texturpack  license: LGPL-3.0-only
+- Masuno PvP: https://modrinth.com/resourcepack/masuno-mace  license: MIT
+- RGB PvP: https://modrinth.com/resourcepack/rgb-pvp  license: MIT

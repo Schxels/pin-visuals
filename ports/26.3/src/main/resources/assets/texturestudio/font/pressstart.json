@@ -1,0 +1,8 @@
+{
+  "providers": [
+    { "type": "ttf", "file": "texturestudio:pressstart2p.ttf", "shift": [0, 0], "size": 8, "oversample": 4.0, "skip": " " },
+    { "type": "reference", "id": "minecraft:include/space" },
+    { "type": "reference", "id": "minecraft:include/default" },
+    { "type": "reference", "id": "minecraft:include/unifont" }
+  ]
+}

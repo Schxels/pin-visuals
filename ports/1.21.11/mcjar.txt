@@ -1,0 +1,1 @@
+C:\Users\schxe\Downloads\Claude\pin-visuals\ports\1.21.11\.gradle\loom-cache\minecraftMaven\net\minecraft\minecraft-merged-630a80a23b\1.21.11-loom.mappings.1_21_11.layered+hash.253056520-v2\minecraft-merged-630a80a23b-1.21.11-loom.mappings.1_21_11.layered+hash.253056520-v2.jar

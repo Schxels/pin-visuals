@@ -1,0 +1,20 @@
+Pin Visuals bundles the following mods unchanged (Fabric jar-in-jar, META-INF/jars/).
+They are separate programs and keep their own licenses:
+
+Skyboxify 3.4 (OptiFine-format skies for Fabric)
+  Authors: lowercasebtw, FlashyReese, AMereBagatelle
+  License: GNU General Public License v3.0 (GPL-3.0.txt)
+  Source:  https://github.com/Legacy-Visuals-Project/Skyboxify
+  Builds:  https://modrinth.com/mod/skyboxify
+
+YetAnotherConfigLib (YACL) v3, required by Skyboxify
+  Author:  isXander
+  License: GNU Lesser General Public License v3.0 or later (LGPL-3.0.txt, together with GPL-3.0.txt)
+  Source:  https://github.com/isXander/YetAnotherConfigLib
+  Builds:  https://modrinth.com/mod/yacl
+
+The source code of exactly these versions is available at the links above (release tags of the
+version numbers in the bundled file names).
+
+Nunito (menu font, assets/texturestudio/font/nunito.ttf): Copyright 2014 The Nunito Project Authors
+(https://github.com/googlefonts/nunito), SIL Open Font License 1.1, see fonts/OFL_nunito.txt.
