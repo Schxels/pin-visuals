@@ -5,8 +5,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRenderEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.resources.Identifier;
@@ -30,9 +31,20 @@ public class TextureStudioClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		openKey = KeyBindingHelper.registerKeyBinding(
 				new KeyMapping("key.texturestudio.open", InputConstants.Type.KEYSYM, InputConstants.KEY_O, CATEGORY));
+		Zoom.key = KeyBindingHelper.registerKeyBinding(
+				new KeyMapping("key.texturestudio.zoom", InputConstants.Type.KEYSYM, InputConstants.KEY_C, CATEGORY));
+		Freelook.key = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.texturestudio.freelook",
+				InputConstants.Type.KEYSYM, InputConstants.KEY_LALT, CATEGORY));
+		Knives.inspectKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.texturestudio.inspect",
+				InputConstants.Type.KEYSYM, InputConstants.KEY_Y, CATEGORY));
+		// other mods often use the same keys: move ours once to free keys (see KeyGuard)
+		KeyGuard.guard(Zoom.key, "Zoom", InputConstants.KEY_J, InputConstants.KEY_0, InputConstants.KEY_8);
+		KeyGuard.guard(Freelook.key, "Freelook", InputConstants.KEY_RALT, InputConstants.KEY_O, InputConstants.KEY_7);
+		KeyGuard.guard(Knives.inspectKey, "Inspect knife", InputConstants.KEY_O, InputConstants.KEY_7, InputConstants.KEY_9);
 
 		// Cosmetics: Auswahl laden, eigene Ebene an alle Spieler-Renderer haengen, Vanilla-Umhang bei eigenem ausblenden
-		MixConfig startConfig = MixConfig.load();
+		Features.init();
+		MixConfig startConfig = Features.cfg;
 		Cosmetics.load(startConfig);
 		Tweaks.load(startConfig);
 		LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
@@ -45,10 +57,14 @@ public class TextureStudioClient implements ClientModInitializer {
 
 		// Kill effects and the Spotify lyrics in the sky (both under Extras)
 		KillEffects.register();
+		WorldFx.register();
+		BlockFx.register();
 		HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath(MOD_ID, "atmosphere"), Atmosphere::extractHud);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), LyricsHud::extract);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "armor"), ArmorHud::extract);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "spotify"), SpotifyHud::extract);
+		HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, Crosshair::wrap);
+		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "toggle_toast"), Features::toastHud);
 		Runtime.getRuntime().addShutdownHook(new Thread(Lyrics::shutdown, "PinVisuals-SpotifyStop"));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -57,6 +73,19 @@ public class TextureStudioClient implements ClientModInitializer {
 			HitColor.tick();
 			PopChams.tick(client);
 			Atmosphere.tick(client);
+			KeyGuard.tick(client, Features.cfg);
+			Zoom.tick(client);
+			BlockFx.tick(client);
+			ItemSwap.tick(client);
+			Freelook.tick(client);
+			Knives.tick(client);
+			Trail.tick(client);
+			MotionBlur.tick(client);
+			// Pin Visuals menu: own title screen instead of the vanilla one
+			if (Tweaks.pinMenu && !PinTitleScreen.bypass && client.screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
+				client.setScreen(new PinTitleScreen());
+			}
+			Features.tickKeys(client);
 			while (openKey.consumeClick()) {
 				if (client.screen == null) {
 					client.setScreen(new TextureStudioScreen(null));

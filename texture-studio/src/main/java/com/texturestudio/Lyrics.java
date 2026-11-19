@@ -32,7 +32,15 @@ import java.util.regex.Pattern;
  */
 public final class Lyrics {
 
-	public record Line(long timeMs, String text) {
+	/**
+	 * A lyric line. wordTimes = start of every word (from Enhanced LRC tags like {@code <01:02.50>}), or null when
+	 * the source has only line times.
+	 */
+	public record Line(long timeMs, String text, long[] wordTimes) {
+
+		public Line(long timeMs, String text) {
+			this(timeMs, text, null);
+		}
 	}
 
 	public enum State {
@@ -435,12 +443,57 @@ public final class Lyrics {
 				end = m.end();
 			}
 			String text = raw.substring(end).trim();
+			long[] words = null;
+			if (text.indexOf('<') >= 0) {
+				// Enhanced LRC: "<00:12.00> word <00:12.48> word ..."
+				List<Long> wt = new ArrayList<>();
+				StringBuilder plain = new StringBuilder();
+				Matcher w = WORD_TAG.matcher(text);
+				long pending = -1;
+				int pos = 0;
+				while (w.find()) {
+					pending = addWords(text.substring(pos, w.start()), pending, wt, plain);
+					pending = Long.parseLong(w.group(1)) * 60_000
+							+ Math.round(Double.parseDouble(w.group(2).replace(':', '.')) * 1000);
+					pos = w.end();
+				}
+				addWords(text.substring(pos), pending, wt, plain);
+				text = plain.toString().trim();
+				if (!wt.isEmpty() && wt.size() == text.split("\\s+").length) {
+					words = new long[wt.size()];
+					for (int i = 0; i < words.length; i++) {
+						words[i] = wt.get(i);
+					}
+				}
+			}
 			for (long tm : times) {
-				out.add(new Line(tm, text));
+				out.add(new Line(tm, text, words));
 			}
 		}
 		out.sort((x, y) -> Long.compare(x.timeMs(), y.timeMs()));
 		return out.isEmpty() ? null : List.copyOf(out);
+	}
+
+	private static final Pattern WORD_TAG = Pattern.compile("<(\\d+):(\\d+(?:[.:]\\d+)?)>");
+
+	/** Adds the words of a piece of text; each gets the pending time (or the one of the word before). */
+	private static long addWords(String piece, long pending, List<Long> times, StringBuilder plain) {
+		for (String word : piece.trim().split("\\s+")) {
+			if (word.isEmpty()) {
+				continue;
+			}
+			long t = pending >= 0 ? pending : times.isEmpty() ? -1 : times.get(times.size() - 1);
+			if (t < 0) {
+				t = 0;
+			}
+			times.add(t);
+			if (plain.length() > 0) {
+				plain.append(' ');
+			}
+			plain.append(word);
+			pending = -1;
+		}
+		return pending;
 	}
 
 	/** "Song - Remastered 2011" / "Song (feat. X)" -> "Song" for a second search. */

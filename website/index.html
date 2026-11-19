@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pin Visuals</title>
+<meta name="description" content="Pin Visuals ist eine Fabric-Mod mit 39 Visual-Features für Minecraft 1.21.11 bis 26.3. Texture Packs mischen, CS-Messer, Aura, Zoom. Download und alle Features.">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Concept: the printed handbook of a mod that only exists on screens. Warm paper, black ink, one redstone accent.
+   Screenshots are numbered plates ("Tafel 04"), features read like a book index. 12-column grid, 1440px, hairlines. */
+:root {
+  --paper: #F1EDE4;
+  --surface: #E8E3D7;
+  --ink: #17150F;
+  --muted: #5E584B;
+  --accent: #B8321A;
+  --line: rgba(23, 21, 15, .18);
+  --line-strong: rgba(23, 21, 15, .55);
+
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans: "Hanken Grotesk", "Segoe UI", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  --fs-display: clamp(3.4rem, 9vw, 9.5rem);
+  --fs-h2: clamp(2.2rem, 4.6vw, 4.6rem);
+  --fs-h3: clamp(1.5rem, 2.2vw, 2.1rem);
+  --fs-lead: clamp(1.6rem, 3.1vw, 3rem);
+  --fs-body: 1.0625rem;
+  --fs-small: .9rem;
+  --fs-label: .72rem;
+
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s5: 48px; --s6: 64px; --s7: 96px; --s8: 128px; --s9: 160px; --s10: 200px;
+  --section: clamp(6rem, 12vw, 12rem);
+  --max: 1440px;
+  --gutter: clamp(16px, 2.2vw, 32px);
+  --side: max(clamp(20px, 4vw, 56px), env(safe-area-inset-left, 0px));
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--fs-body)/1.6 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--ink); color: var(--paper); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; letter-spacing: -.02em; line-height: 1; text-wrap: balance; }
+p { margin: 0; }
+em { font-style: italic; }
+.label { font: 600 var(--fs-label)/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.wrap { max-width: var(--max); margin: 0 auto; padding-left: var(--side); padding-right: max(clamp(20px, 4vw, 56px), env(safe-area-inset-right, 0px)); }
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); }
+.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+/* link: underline drawn in with background-size */
+.ul { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size .25s var(--ease-out); padding-bottom: 1px; }
+.ul:hover, .ul:focus-visible { background-size: 100% 1px; }
+.ul.on { background-size: 100% 1px; }
+.ul.on:hover { background-size: 0 1px; background-position: 100% 100%; }
+
+/* button: one primary (ink pill, fill rises from below), one text link */
+.btn {
+  position: relative; display: inline-flex; align-items: center; gap: 12px; overflow: hidden; isolation: isolate;
+  font: 600 .98rem/1 var(--sans); padding: 18px 28px; border-radius: 999px; background: var(--ink); color: var(--paper); border: 1px solid var(--ink);
+  transition: color .25s var(--ease-out);
+}
+.btn::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--accent); transform: translateY(101%); transition: transform .45s var(--ease-out); }
+.btn:hover::before, .btn:focus-visible::before { transform: translateY(0); }
+.btn .arr { display: inline-block; transition: transform .25s var(--ease-out); }
+.btn:hover .arr { transform: translateY(2px); }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover { color: var(--paper); }
+.btn.ghost::before { background: var(--ink); }
+
+/* ---------------------------------------------------------------- loader */
+.loader { position: fixed; inset: 0; z-index: 100; background: var(--ink); color: var(--paper); display: none; cursor: pointer; }
+.motion .loader.show { display: grid; }
+.loader .in { align-self: end; display: flex; justify-content: space-between; align-items: end; padding: var(--side); padding-bottom: max(var(--side), env(safe-area-inset-bottom, 0px)); }
+.loader .count { font: 400 clamp(6rem, 22vw, 20rem)/.8 var(--serif); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.loader .label { color: rgba(241, 237, 228, .6); text-align: right; }
+
+/* ---------------------------------------------------------------- nav */
+.nav { position: fixed; z-index: 50; top: 0; left: 0; right: 0; padding-top: env(safe-area-inset-top, 0px); background: var(--paper); border-bottom: 1px solid var(--line); transition: transform .5s var(--ease-io); }
+.nav.hide { transform: translateY(-100%); }
+.nav .wrap { display: flex; align-items: center; gap: var(--s4); height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 400 1.55rem/1 var(--serif); letter-spacing: -.01em; }
+.brand img { width: 26px; height: 26px; image-rendering: pixelated; }
+.nav nav { display: flex; gap: var(--s4); margin-left: auto; font-size: .95rem; font-weight: 500; }
+.nav .dl { font: 600 .9rem/1 var(--sans); padding: 12px 18px; }
+.burger { display: none; margin-left: auto; background: none; border: 0; padding: 10px 0 10px 10px; cursor: pointer; font: 600 var(--fs-label)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.overlay { position: fixed; inset: 0; z-index: 60; background: var(--ink); color: var(--paper); display: none; flex-direction: column; padding: calc(env(safe-area-inset-top, 0px) + 20px) var(--side) max(32px, env(safe-area-inset-bottom, 0px)); }
+.overlay.open { display: flex; }
+.overlay .top { display: flex; justify-content: space-between; align-items: center; height: 44px; }
+.overlay .top button { background: none; border: 0; color: var(--paper); font: 600 var(--fs-label)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; padding: 10px 0; }
+.overlay ul { list-style: none; margin: auto 0 0; padding: 0; }
+.overlay li { overflow: hidden; border-top: 1px solid rgba(241, 237, 228, .2); }
+.overlay li a { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; font: 400 clamp(2.6rem, 11vw, 4rem)/1.05 var(--serif); }
+.overlay li a span { font: 600 var(--fs-label)/1 var(--mono); color: rgba(241, 237, 228, .55); }
+
+/* ---------------------------------------------------------------- hero */
+.hero { padding-top: calc(64px + env(safe-area-inset-top, 0px) + clamp(3rem, 7vw, 6.5rem)); padding-bottom: var(--section); overflow: hidden; }
+.hero .meta { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; padding-bottom: var(--s3); border-bottom: 1px solid var(--line); margin-bottom: clamp(2.5rem, 5vw, 4.5rem); }
+.hero h1 { grid-column: 1 / span 7; font-size: var(--fs-display); line-height: .95; }
+.line { display: block; overflow: hidden; padding-bottom: .06em; margin-bottom: -.06em; }
+.line > span { display: block; }
+.hero h1 em { color: var(--accent); }
+.hero .copy { grid-column: 1 / span 5; margin-top: clamp(2rem, 4vw, 3.5rem); display: grid; gap: var(--s4); justify-items: start; }
+.hero .copy p { font-size: 1.2rem; line-height: 1.5; max-width: 34ch; color: var(--ink); }
+.hero .plate { grid-column: 8 / span 5; grid-row: 2 / span 2; align-self: end; margin-right: calc(-1 * var(--side)); }
+.plate figure { margin: 0; }
+.frame { position: relative; overflow: hidden; background: var(--surface); }
+.frame img { width: 100%; height: 100%; object-fit: cover; }
+.frame::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(23, 21, 15, .12); pointer-events: none; }
+.cap { display: flex; justify-content: space-between; gap: var(--s2); padding-top: 12px; }
+.cap b { font: 600 var(--fs-label)/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+.cap span { font-size: var(--fs-small); color: var(--muted); text-align: right; }
+.hero .plate .frame { aspect-ratio: 4 / 5; }
+.hero .plate img { object-position: 78% 75%; }
+.versions { grid-column: 1 / span 7; margin-top: clamp(3rem, 6vw, 5rem); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); }
+.versions span { font: 400 var(--fs-small)/1.4 var(--mono); color: var(--muted); }
+.versions b { color: var(--ink); font-weight: 600; }
+
+/* ---------------------------------------------------------------- intro (scrubbed words) */
+.intro { padding-block: var(--section); border-top: 1px solid var(--line); }
+.intro .label { grid-column: 1 / span 3; padding-top: .9em; }
+.intro p { grid-column: 4 / span 9; font: 400 var(--fs-lead)/1.18 var(--serif); letter-spacing: -.012em; }
+.intro p .w { opacity: 1; }
+.motion .intro p .w { opacity: .2; }
+
+/* ---------------------------------------------------------------- selected features (index with hover preview) */
+.sel { padding-bottom: var(--section); }
+.sec-head { align-items: end; padding-bottom: var(--s5); }
+.sec-head h2 { grid-column: 1 / span 7; font-size: var(--fs-h2); }
+.sec-head p { grid-column: 9 / span 4; color: var(--muted); max-width: 40ch; }
+.list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-strong); }
+.list li { border-bottom: 1px solid var(--line); }
+.list a { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: baseline; padding: clamp(18px, 2.4vw, 30px) 0; transition: color .25s var(--ease-out); }
+.list .n { grid-column: 1 / span 1; font: 600 var(--fs-label)/1 var(--mono); color: var(--muted); }
+.list .t { grid-column: 2 / span 6; font: 400 var(--fs-h3)/1.05 var(--serif); letter-spacing: -.015em; transition: transform .35s var(--ease-out); }
+.list .d { grid-column: 8 / span 4; color: var(--muted); font-size: var(--fs-small); }
+.list .c { grid-column: 12 / span 1; text-align: right; }
+.list a:hover .t, .list a:focus-visible .t { transform: translateX(14px); }
+.list a:hover .n { color: var(--accent); }
+.peek { position: fixed; left: 0; top: 0; z-index: 40; width: clamp(240px, 24vw, 380px); aspect-ratio: 4 / 3; pointer-events: none; opacity: 0; transform: translate(-50%, -50%) scale(.9); overflow: hidden; background: var(--surface); }
+.peek img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s linear; }
+.peek img.on { opacity: 1; }
+
+/* ---------------------------------------------------------------- plates (image-led) */
+.plates { padding-bottom: var(--section); }
+.plates .p1 { grid-column: 1 / span 7; margin-left: calc(-1 * var(--side)); }
+.plates .p1 .frame { aspect-ratio: 16 / 10; }
+.plates .p1 .cap { padding-left: var(--side); }
+.plates .p2 { grid-column: 9 / span 4; align-self: end; }
+.plates .p2 .frame { aspect-ratio: 3 / 4; }
+.plates .note { grid-column: 9 / span 4; margin-top: var(--s6); }
+.plates .note h3 { font-size: var(--fs-h3); margin-bottom: var(--s2); }
+.plates .note p { color: var(--muted); max-width: 40ch; }
+.plates .p3 { grid-column: 3 / span 6; margin-top: clamp(4rem, 9vw, 9rem); }
+.plates .p3 .frame { aspect-ratio: 16 / 9; }
+.plates .p4 { grid-column: 10 / span 3; margin-top: clamp(8rem, 16vw, 15rem); margin-right: calc(-1 * var(--side)); }
+.plates .p4 .frame { aspect-ratio: 1 / 1; }
+.plates .p4 .cap { padding-right: var(--side); }
+.reveal-img .frame img { transform-origin: 50% 50%; }
+
+/* ---------------------------------------------------------------- register (dense) */
+.register { padding-block: var(--section); background: var(--surface); border-block: 1px solid var(--line); }
+.register .sec-head h2 { grid-column: 1 / span 6; }
+.cols { columns: 4 240px; column-gap: var(--gutter); column-rule: 1px solid var(--line); }
+.group { break-inside: avoid; margin-bottom: var(--s5); }
+.group h3 { font: 600 var(--fs-label)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); padding-bottom: 12px; border-bottom: 1px solid var(--line-strong); margin-bottom: 4px; }
+.group dl { margin: 0; }
+.group div { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.group dt { font-weight: 600; font-size: .98rem; display: flex; justify-content: space-between; gap: 10px; }
+.group dt small { font: 600 .62rem/1.6 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.group dt small.new { color: var(--accent); }
+.group dd { margin: 2px 0 0; font-size: .86rem; line-height: 1.45; color: var(--muted); }
+
+/* ---------------------------------------------------------------- figures + install */
+.figs { padding-block: var(--section); }
+.nums { list-style: none; margin: 0 0 var(--section); padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line-strong); }
+.nums li { padding: var(--s3) var(--s3) 0 0; display: grid; gap: var(--s1); }
+.nums li + li { border-left: 1px solid var(--line); padding-left: var(--s3); }
+.nums b { font: 400 clamp(3.4rem, 7vw, 6.5rem)/.9 var(--serif); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.nums span { color: var(--muted); font-size: var(--fs-small); max-width: 22ch; }
+.steps .sec-head h2 { grid-column: 1 / span 5; }
+.steps ol { list-style: none; margin: 0; padding: 0; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--gutter); counter-reset: st; }
+.steps li { border-top: 1px solid var(--ink); padding-top: var(--s3); display: grid; gap: var(--s1); align-content: start; }
+.steps li::before { counter-increment: st; content: counter(st, decimal-leading-zero); font: 600 var(--fs-label)/1 var(--mono); color: var(--accent); }
+.steps li b { font: 400 1.7rem/1.1 var(--serif); }
+.steps li p { color: var(--muted); font-size: .96rem; }
+kbd { font: 600 .8em/1 var(--mono); border: 1px solid var(--line-strong); padding: 2px 6px; background: var(--paper); }
+code { font: .86em/1 var(--mono); }
+
+/* ---------------------------------------------------------------- download */
+.download { padding-block: var(--section); background: var(--ink); color: var(--paper); }
+.download .label { color: rgba(241, 237, 228, .6); }
+.download .sec-head p { color: rgba(241, 237, 228, .7); }
+.table { grid-column: 1 / -1; border-top: 1px solid rgba(241, 237, 228, .55); }
+.row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: center; padding: clamp(18px, 2.4vw, 28px) 0; border-bottom: 1px solid rgba(241, 237, 228, .18); }
+.row .v { grid-column: 1 / span 3; font: 400 clamp(2.2rem, 4.4vw, 4rem)/1 var(--serif); letter-spacing: -.02em; }
+.row .v small { display: block; margin-top: 8px; font: 600 var(--fs-label)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #E9785F; }
+.row dl { grid-column: 4 / span 6; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.row dt { font: 600 .66rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: rgba(241, 237, 228, .55); margin-bottom: 6px; }
+.row dd { margin: 0; font: 400 .9rem/1.3 var(--mono); }
+.row .go { grid-column: 10 / span 3; justify-self: end; }
+.download .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.download .btn::before { background: var(--accent); }
+.download .btn:hover { color: var(--paper); }
+.row p.note { grid-column: 4 / span 6; margin-top: 12px; font-size: .88rem; color: rgba(241, 237, 228, .6); }
+.needs { grid-column: 1 / -1; margin-top: var(--s5); display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: .95rem; color: rgba(241, 237, 228, .75); }
+.needs a { color: var(--paper); }
+
+/* ---------------------------------------------------------------- colophon */
+.colophon { padding-block: var(--section); }
+.colophon .lead { grid-column: 1 / span 5; }
+.colophon .lead h2 { font-size: var(--fs-h2); margin: var(--s3) 0 var(--s4); }
+.colophon .lead p { color: var(--muted); max-width: 42ch; }
+.qa { grid-column: 7 / span 6; border-top: 1px solid var(--line-strong); }
+.qa div { padding: var(--s3) 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: var(--gutter); }
+.qa h3 { grid-column: 1 / span 2; font: 600 1rem/1.35 var(--sans); letter-spacing: 0; }
+.qa p { grid-column: 3 / span 4; color: var(--muted); font-size: .98rem; }
+
+/* ---------------------------------------------------------------- closing */
+.closing { padding-block: var(--section) calc(var(--section) * .8); border-top: 1px solid var(--line); overflow: hidden; }
+.closing h2 { grid-column: 1 / -1; font-size: clamp(5rem, 19vw, 19rem); line-height: .85; letter-spacing: -.045em; }
+.closing h2 em { color: var(--accent); }
+.closing .act { grid-column: 7 / span 6; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s5); }
+.closing .act p { color: var(--muted); max-width: 30ch; }
+
+/* ---------------------------------------------------------------- footer */
+footer { border-top: 1px solid var(--line-strong); padding-block: var(--s5) max(var(--s5), env(safe-area-inset-bottom, 0px)); font-size: .86rem; }
+footer .grid > * { min-width: 0; }
+footer .f1 { grid-column: 1 / span 4; display: grid; gap: var(--s2); align-content: start; }
+footer .f1 .brand { font-size: 1.9rem; }
+footer .f1 p { color: var(--muted); max-width: 34ch; }
+footer .f2 { grid-column: 6 / span 2; }
+footer .f3 { grid-column: 8 / span 3; }
+footer .f4 { grid-column: 11 / span 2; text-align: right; }
+footer h4 { margin: 0 0 12px; font: 600 var(--fs-label)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+footer .base { grid-column: 1 / -1; margin-top: var(--s6); padding-top: var(--s2); border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; color: var(--muted); }
+.totop { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); cursor: pointer; }
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width: 1080px) {
+  .hero h1 { grid-column: 1 / -1; }
+  .hero .copy { grid-column: 1 / span 7; }
+  .hero .plate { grid-column: 8 / -1; grid-row: 3; }
+  .versions { grid-column: 1 / -1; }
+  .list .d { grid-column: 8 / span 5; }
+  .list .c { display: none; }
+  .qa { grid-column: 1 / -1; margin-top: var(--s6); }
+  .colophon .lead { grid-column: 1 / span 8; }
+  .row dl { grid-column: 4 / span 9; }
+  .row .go { grid-column: 4 / span 9; justify-self: start; margin-top: var(--s2); }
+  .row p.note { grid-column: 4 / span 9; }
+}
+@media (max-width: 760px) {
+  .nav nav, .nav .dl { display: none; }
+  .burger { display: block; }
+  .hero .copy, .hero .plate { grid-column: 1 / -1; }
+  .hero .plate { grid-row: auto; margin-top: var(--s6); margin-right: calc(-1 * var(--side)); }
+  .intro .label, .intro p, .sec-head h2, .sec-head p, .register .sec-head h2, .steps .sec-head h2 { grid-column: 1 / -1; }
+  .intro .label, .sec-head p { margin-bottom: var(--s3); }
+  .sec-head p { margin-top: var(--s3); margin-bottom: 0; }
+  .list .n { grid-column: 1 / span 2; }
+  .list .t { grid-column: 3 / -1; }
+  .list .d { grid-column: 3 / -1; margin-top: 6px; }
+  .plates .p1, .plates .p3 { grid-column: 1 / -1; }
+  .plates .p2, .plates .note { grid-column: 3 / -1; margin-top: var(--s6); }
+  .plates .p3 { margin-top: var(--s7); }
+  .plates .p4 { grid-column: 5 / -1; margin-top: var(--s6); }
+  .nums { grid-template-columns: 1fr 1fr; }
+  .nums li:nth-child(3) { border-left: 0; padding-left: 0; }
+  .nums li:nth-child(n+3) { padding-top: var(--s5); }
+  .steps ol { grid-template-columns: 1fr; row-gap: var(--s4); }
+  .row .v, .row dl, .row .go, .row p.note { grid-column: 1 / -1; }
+  .row dl { margin-top: var(--s3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row .go { margin-top: var(--s3); }
+  .qa div { grid-template-columns: 1fr; row-gap: 8px; }
+  .qa h3, .qa p { grid-column: 1 / -1; }
+  .closing .act { grid-column: 1 / -1; }
+  footer .f1, footer .f2, footer .f3, footer .f4 { grid-column: 1 / -1; text-align: left; margin-bottom: var(--s4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<script>
+  // motion only when allowed; content is fully visible without JS or without the animation libraries
+  (function () {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) document.documentElement.classList.add('motion');
+  })();
+</script>
+</head>
+<body>
+
+<div class="loader" id="loader" role="presentation">
+  <div class="in">
+    <div class="count" id="count">00</div>
+    <div class="label">Pin Visuals 2.0.0<br>Features werden gezählt — klicken zum Überspringen</div>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Pin Visuals, zum Anfang"><img src="img/icon.png" alt="">Pin Visuals</a>
+    <nav aria-label="Abschnitte">
+      <a class="ul" href="#features">Features</a>
+      <a class="ul" href="#register">Register</a>
+      <a class="ul" href="#install">Installation</a>
+      <a class="ul" href="#fragen">Fragen</a>
+    </nav>
+    <a class="btn dl" href="#download">Herunterladen</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="overlay">Menü</button>
+  </div>
+</header>
+
+<div class="overlay" id="overlay" aria-hidden="true">
+  <div class="top"><span class="brand">Pin Visuals</span><button type="button" id="close">Schließen</button></div>
+  <ul>
+    <li><a href="#features">Features <span>03</span></a></li>
+    <li><a href="#register">Register <span>05</span></a></li>
+    <li><a href="#install">Installation <span>06</span></a></li>
+    <li><a href="#download">Download <span>07</span></a></li>
+    <li><a href="#fragen">Fragen <span>08</span></a></li>
+  </ul>
+</div>
+
+<main id="top">
+
+  <!-- 01 HERO -->
+  <section class="hero">
+    <div class="wrap grid">
+      <div class="meta"><span class="label">Fabric-Mod · Version 2.0.0</span><span class="label">Handbuch, Ausgabe November 2026</span></div>
+      <h1 aria-label="Minecraft, neu belichtet.">
+        <span class="line"><span>Minecraft,</span></span>
+        <span class="line"><span>neu <em>belichtet.</em></span></span>
+      </h1>
+      <div class="plate hero-plate">
+        <figure>
+          <div class="frame"><img src="img/butterfly-close.jpg" alt="Ein Butterfly-Messer mitten im Inspect-Trick in der Ich-Perspektive" width="1024" height="666"></div>
+          <figcaption class="cap"><b>Tafel 01</b><span>Butterfly, Inspect, nach 0,7 Sekunden</span></figcaption>
+        </figure>
+      </div>
+      <div class="copy rise">
+        <p>39 Eingriffe in das, was du siehst. Texture Packs mischen, Messer inspizieren, den Himmel selbst zeichnen. Nur auf deinem Bildschirm.</p>
+        <a class="btn" href="#download">Mod herunterladen <span class="arr" aria-hidden="true">↓</span></a>
+      </div>
+      <div class="versions rise">
+        <span>Minecraft <b>1.21.11</b></span><span><b>26.1</b></span><span><b>26.2</b></span><span><b>26.3</b></span><span>Fabric Loader <b>0.19.1+</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 INTRO -->
+  <section class="intro">
+    <div class="wrap grid">
+      <span class="label">02 — Worum es geht</span>
+      <p id="scrub">Pin Visuals ist kein Client und kein Cheat. Es ist eine Sammlung kleiner Eingriffe, die nur auf deinem Bildschirm passieren: wie ein Block zerbricht, wie ein Item in die Hand gleitet, welche Farbe der Nebel hat und wie der Himmel bei Sonnenuntergang aussieht. Der Server merkt davon nichts.</p>
+    </div>
+  </section>
+
+  <!-- 03 SELECTED FEATURES -->
+  <section class="sel" id="features">
+    <div class="wrap">
+      <div class="grid sec-head">
+        <h2 class="rise">Acht, die man <em>sofort</em> sieht.</h2>
+        <p class="rise">Fahr mit der Maus über einen Eintrag, um die Tafel dazu zu sehen. Die übrigen 31 stehen weiter unten im Register.</p>
+      </div>
+      <ol class="list" id="list">
+        <li><a href="#register" data-img="img/butterfly-close.jpg"><span class="n">01</span><span class="t">Knife &amp; Inspect</span><span class="d">Butterfly, Karambit, Bayonet, Flip Knife in sechs Finishes. Zuklappen, Aufschnappen, Rollover.</span><span class="c label">Player</span></a></li>
+        <li><a href="#register" data-img="img/skin.jpg"><span class="n">02</span><span class="t">Aura</span><span class="d">Ein Ring, der auf Hüfthöhe um dich schwebt. Sechs Lichter kreisen mit.</span><span class="c label">Player</span></a></li>
+        <li><a href="#register" data-img="img/breakbar.jpg"><span class="n">03</span><span class="t">Block Break Animation</span><span class="d">Ein Batterie-Balken füllt sich von Rot nach Grün, statt dass der Block reißt.</span><span class="c label">Render</span></a></li>
+        <li><a href="#register" data-img="img/packs.jpg"><span class="n">04</span><span class="t">Texture Pack Manager</span><span class="d">Kristalle aus einem Pack, Schwerter aus dem anderen. Jeder Stil mit 3D-Vorschau.</span><span class="c label">Packs</span></a></li>
+        <li><a href="#register" data-img="img/atmosphere.jpg"><span class="n">05</span><span class="t">Atmosphere</span><span class="d">Farbiger Dunst und Partikel: Mystic, Ember, Frost, Sakura, Firefly.</span><span class="c label">Render</span></a></li>
+        <li><a href="#register" data-img="img/outline.jpg"><span class="n">06</span><span class="t">Player Outline</span><span class="d">Eine farbige Linie um Spieler, hinter Blöcken verdeckt.</span><span class="c label">Player</span></a></li>
+        <li><a href="#register" data-img="img/lyrics.jpg"><span class="n">07</span><span class="t">Spotify Lyrics</span><span class="d">Der Songtext läuft synchron mit, im Bild oder in den Wolken.</span><span class="c label">HUD</span></a></li>
+        <li><a href="#register" data-img="img/settings.jpg"><span class="n">08</span><span class="t">Zoom &amp; Freelook</span><span class="d">Weicher Zoom mit Mausrad, Umschauen ohne den Spieler zu drehen. Tasten im Menü.</span><span class="c label">Render</span></a></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 04 PLATES -->
+  <section class="plates" aria-label="Bildtafeln">
+    <div class="wrap grid">
+      <figure class="p1 reveal-img plx">
+        <div class="frame"><img src="img/studio.jpg" alt="Das Pin-Visuals-Menü mit den Stilen für End-Kristalle und dem geöffneten Studio" loading="lazy" width="1280" height="720"></div>
+        <figcaption class="cap"><b>Tafel 02</b><span>Das Menü, Taste O. Pack-Stile links, Studio in der Mitte.</span></figcaption>
+      </figure>
+      <figure class="p2 reveal-img">
+        <div class="frame"><img src="img/popchams.jpg" alt="Pop Chams: ein farbiger Geist, wo ein Spieler ein Totem verbraucht hat" loading="lazy"></div>
+        <figcaption class="cap"><b>Tafel 03</b><span>Pop Chams nach einem Totem</span></figcaption>
+      </figure>
+      <div class="note rise">
+        <h3>Alles bleibt bei dir.</h3>
+        <p>Cape, Flügel, Skin, Messer und Aura sieht nur, wer die Mod installiert hat, und auch dann nur am eigenen Bildschirm. Für alle anderen spielst du normales Minecraft.</p>
+      </div>
+      <figure class="p3 reveal-img plx">
+        <div class="frame"><img src="img/dusk.jpg" alt="Lila Abendhimmel über dem Meer" loading="lazy"></div>
+        <figcaption class="cap"><b>Tafel 04</b><span>Ein eigener Himmel bei Abenddämmerung</span></figcaption>
+      </figure>
+      <figure class="p4 reveal-img">
+        <div class="frame"><img src="img/crosshair.jpg" alt="Der Crosshair-Editor mit Vorschau" loading="lazy"></div>
+        <figcaption class="cap"><b>Tafel 05</b><span>Crosshair-Editor</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 05 REGISTER -->
+  <section class="register" id="register">
+    <div class="wrap">
+      <div class="grid sec-head">
+        <h2 class="rise">Register. Alle <em>39</em>.</h2>
+        <p class="rise">Sortiert wie in „All Settings“ im Spiel. Jedes Feature hat eigene Regler und eine eigene Taste.</p>
+      </div>
+      <div class="cols" id="cols"></div>
+    </div>
+  </section>
+
+  <!-- 06 FIGURES + INSTALL -->
+  <section class="figs" id="install">
+    <div class="wrap">
+      <ol class="nums">
+        <li class="rise"><b>39</b><span>Features in fünf Kategorien</span></li>
+        <li class="rise"><b>4</b><span>Minecraft-Versionen von 1.21.11 bis 26.3</span></li>
+        <li class="rise"><b>8,3</b><span>Megabyte pro Datei, Skyboxify bei 1.21.11 inklusive</span></li>
+        <li class="rise"><b>0</b><span>Mods, die der Server dafür braucht</span></li>
+      </ol>
+      <div class="steps">
+        <div class="grid sec-head"><h2 class="rise">In vier Schritten im Spiel.</h2></div>
+        <div class="grid">
+          <ol>
+            <li class="rise"><b>Fabric installieren</b><p>Fabric Loader 0.19.1 oder neuer. NoRisk, Modrinth und Prism können das für dich.</p></li>
+            <li class="rise"><b>Fabric API holen</b><p>Die Version, die zu deinem Minecraft passt. Steht unten bei jedem Download.</p></li>
+            <li class="rise"><b>In den mods-Ordner</b><p>Beide <code>.jar</code>-Dateien nach <code>.minecraft/mods</code> oder ins Launcher-Profil.</p></li>
+            <li class="rise"><b><kbd>O</kbd> drücken</b><p>Beim ersten Start zeigt dir eine kurze Tour, wo was ist.</p></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 DOWNLOAD -->
+  <section class="download" id="download">
+    <div class="wrap">
+      <div class="grid sec-head">
+        <h2 class="rise">Die Dateien.</h2>
+        <p class="rise">Eine Datei pro Minecraft-Version, alle vom 12. November 2026. Nimm die, die zu deinem Spiel passt.</p>
+      </div>
+      <div class="grid">
+        <div class="table">
+          <div class="row rise">
+            <div class="v">26.2<small>Empfohlen</small></div>
+            <dl><div><dt>Java</dt><dd>25</dd></div><div><dt>Fabric API</dt><dd>0.161.0+</dd></div><div><dt>Größe</dt><dd>8,3 MB</dd></div></dl>
+            <a class="btn go" href="downloads/pin-visuals-2.0.0-26.2.jar" download>Für 26.2 laden <span class="arr" aria-hidden="true">↓</span></a>
+            <p class="note">Hauptversion. Jedes Feature ist hier im Spiel getestet.</p>
+          </div>
+          <div class="row rise">
+            <div class="v">26.3</div>
+            <dl><div><dt>Java</dt><dd>25</dd></div><div><dt>Fabric API</dt><dd>0.165.2+</dd></div><div><dt>Größe</dt><dd>8,3 MB</dd></div></dl>
+            <a class="btn go" href="downloads/pin-visuals-2.0.0-26.3.jar" download>Für 26.3 laden <span class="arr" aria-hidden="true">↓</span></a>
+            <p class="note">Ohne Motion Blur, Swing Animation und Butterfly-Trick.</p>
+          </div>
+          <div class="row rise">
+            <div class="v">26.1</div>
+            <dl><div><dt>Java</dt><dd>25</dd></div><div><dt>Fabric API</dt><dd>0.155.3+</dd></div><div><dt>Größe</dt><dd>8,3 MB</dd></div></dl>
+            <a class="btn go" href="downloads/pin-visuals-2.0.0-26.1.jar" download>Für 26.1 laden <span class="arr" aria-hidden="true">↓</span></a>
+            <p class="note">Für 26.1 bis 26.1.2.</p>
+          </div>
+          <div class="row rise">
+            <div class="v">1.21.11</div>
+            <dl><div><dt>Java</dt><dd>21</dd></div><div><dt>Fabric API</dt><dd>0.141.6+</dd></div><div><dt>Größe</dt><dd>8,3 MB</dd></div></dl>
+            <a class="btn go" href="downloads/pin-visuals-2.0.0-1.21.11.jar" download>Für 1.21.11 laden <span class="arr" aria-hidden="true">↓</span></a>
+            <p class="note">Bringt Skyboxify für eigene Himmel gleich mit.</p>
+          </div>
+        </div>
+        <div class="needs">
+          <span>Außerdem nötig:</span>
+          <a class="ul on" href="https://fabricmc.net/use/installer/" target="_blank" rel="noopener">Fabric Loader ↗</a>
+          <a class="ul on" href="https://modrinth.com/mod/fabric-api" target="_blank" rel="noopener">Fabric API ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 COLOPHON / FAQ -->
+  <section class="colophon" id="fragen">
+    <div class="wrap grid">
+      <div class="lead rise">
+        <span class="label">08 — Kolophon</span>
+        <h2>Wie es gebaut ist.</h2>
+        <p>Pin Visuals läuft auf Fabric und wird für jede Minecraft-Version einzeln gebaut. Getestet wird in 26.2 mit Screenshots aus dem Spiel und im NoRisk Client. Die anderen drei Versionen starten geprüft fehlerfrei.</p>
+      </div>
+      <div class="qa">
+        <div class="rise"><h3>Ist das auf Servern erlaubt?</h3><p>Die Mod ändert nur, was du siehst. Manche Server verbieten einzelne Dinge wie Freelook. Jedes Feature lässt sich einzeln ausschalten.</p></div>
+        <div class="rise"><h3>Sehen andere meine Kosmetik?</h3><p>Nein. Cape, Hut, Flügel, Skin, Aura und Messer gibt es nur auf deinem Bildschirm.</p></div>
+        <div class="rise"><h3>Sodium oder Iris?</h3><p>Noch nicht gezielt getestet. Mit Shadern können Motion Blur und Atmosphere anders aussehen.</p></div>
+        <div class="rise"><h3>Wo liegen die Einstellungen?</h3><p><code>config/pinvisuals/settings.json</code>, Presets in <code>config/pinvisuals/presets</code>, die Pack-Auswahl in <code>config/texturestudio.json</code>.</p></div>
+        <div class="rise"><h3>Eigener Skin?</h3><p>Lege eine 64×64-PNG als <code>pinvisuals/skin.png</code> in den Minecraft-Ordner und wähle „Own file“.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 CLOSING -->
+  <section class="closing">
+    <div class="wrap grid">
+      <h2 class="big"><span class="line"><span>Drück</span></span><span class="line"><span><em>O.</em></span></span></h2>
+      <div class="act rise">
+        <p>Danach öffnet sich alles, was auf dieser Seite steht.</p>
+        <a class="btn" href="#download">Mod herunterladen <span class="arr" aria-hidden="true">↓</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap grid">
+    <div class="f1"><span class="brand">Pin Visuals</span><p>Fabric-Mod für Minecraft 1.21.11 bis 26.3. Version 2.0.0, November 2026.</p></div>
+    <div class="f2"><h4>Seite</h4><ul><li><a class="ul" href="#features">Features</a></li><li><a class="ul" href="#register">Register</a></li><li><a class="ul" href="#install">Installation</a></li><li><a class="ul" href="#download">Download</a></li><li><a class="ul" href="#fragen">Fragen</a></li></ul></div>
+    <div class="f3"><h4>Tasten</h4><ul><li><kbd>O</kbd> Menü</li><li><kbd>C</kbd> Zoom</li><li><kbd>Alt</kbd> Freelook</li><li><kbd>Y</kbd> Messer-Inspect</li></ul></div>
+    <div class="f4"><h4>Ende</h4><button class="totop ul" type="button" id="totop">Nach oben ↑</button></div>
+    <div class="base"><span>Nicht offiziell mit Mojang oder Microsoft verbunden.</span><span>Gesetzt in Instrument Serif und Hanken Grotesk.</span></div>
+  </div>
+</footer>
+
+<div class="peek" id="peek" aria-hidden="true"></div>
+
+<script>
+// Register data (also used for the loader count)
+const REG = {
+  "Render": [
+    ["Block Outline", "Farbe, Dicke und Glow der Block-Umrandung."],
+    ["Atmosphere", "Farbiger Nebel, Dunst und Partikel."],
+    ["Kill Effects", "Partikel und Sound beim Kill."],
+    ["Viewmodel", "Größe, Position, Winkel des Items in der Hand."],
+    ["Hurt Cam", "Weniger oder kein Wackeln bei Schaden."],
+    ["Zoom", "Weich, mit Mausrad weiter."],
+    ["Freelook", "Umschauen, ohne dich zu drehen."],
+    ["Block Break Animation", "Batterie, Füllung oder Glow statt Risse.", "neu"],
+    ["Block Place Animation", "Blöcke ploppen kurz auf.", "neu"],
+    ["Motion Blur", "Leichte Unschärfe beim Drehen.", "nicht 26.3"],
+    ["Low Fire", "Feuer im Bild sitzt tiefer."],
+    ["Low Shield", "Schild tiefer gehalten."],
+    ["No Totem Animation", "Kein großes Totem im Bild."]
+  ],
+  "Player": [
+    ["Player Outline", "Linie um Spieler, hinter Blöcken verdeckt."],
+    ["Pop Chams", "Geist nach einem Totem."],
+    ["Hit Colour", "Eigene Farbe beim Treffer."],
+    ["Cape", "Eigenes Cape, auch selbst gemalt."],
+    ["Hat", "Ein Hut, Größe und Schweben einstellbar."],
+    ["Wings", "Angel, Seraph, Raven, Phoenix, Dragon, Butterfly."],
+    ["Trail", "Partikelspur hinter dir."],
+    ["Aura", "Schwebender Ring mit Lichtern.", "neu"],
+    ["Knife", "CS-Messer mit Inspect.", "neu"],
+    ["Swing Animation", "Langsam, schnell oder 1.7.", "nicht 26.3"],
+    ["Item Swap Animation", "Item gleitet in die Hand.", "neu"],
+    ["Custom Skin", "Alien, Robot, Ninja, Astronaut, Shadow, eigene Datei.", "neu"]
+  ],
+  "Texture Packs": [
+    ["Texture Pack Manager", "Stile pro Sammlung mischen."],
+    ["Pack Browser", "Packs auf Modrinth suchen und laden."]
+  ],
+  "HUD": [
+    ["Crosshair", "Eigenes Fadenkreuz."],
+    ["Armor HUD", "Rüstung mit Haltbarkeit."],
+    ["Spotify Overlay", "Cover, Titel, Fortschritt."],
+    ["Spotify Lyrics", "Songtext synchron, auch am Himmel."]
+  ],
+  "Misc": [
+    ["Presets", "Ganzes Setup speichern und laden."],
+    ["No Totem Particles", "Keine Totem-Partikel."],
+    ["No Explosion Particles", "Kein Rauch von Kristallen und TNT."],
+    ["Fewer Hit Particles", "Keine Krit- und Sweep-Partikel."],
+    ["Calm Crystals", "End-Kristalle stehen still."],
+    ["Hide Far Items", "Ferne Items werden nicht gezeichnet."],
+    ["Title Screen", "Eigener Titel- und Ladebildschirm."],
+    ["Menu", "Animationen und Farbthemen."]
+  ]
+};
+(function () {
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  document.getElementById("cols").innerHTML = Object.entries(REG).map(([cat, items]) =>
+    '<div class="group rise"><h3>' + esc(cat) + " · " + items.length + "</h3><dl>" +
+    items.map(i => "<div><dt>" + esc(i[0]) + (i[2] ? '<small class="' + (i[2] === "neu" ? "new" : "") + '">' + esc(i[2]) + "</small>" : "") +
+      "</dt><dd>" + esc(i[1]) + "</dd></div>").join("") + "</dl></div>").join("");
+
+  // nav: hide on scroll down, back on scroll up
+  const nav = document.getElementById("nav");
+  let lastY = scrollY;
+  addEventListener("scroll", () => {
+    const y = scrollY;
+    nav.classList.toggle("hide", y > lastY && y > 160 && !document.getElementById("overlay").classList.contains("open"));
+    lastY = y;
+  }, { passive: true });
+
+  // mobile overlay
+  const overlay = document.getElementById("overlay"), burger = document.getElementById("burger");
+  function setMenu(open) {
+    overlay.classList.toggle("open", open);
+    overlay.setAttribute("aria-hidden", String(!open));
+    burger.setAttribute("aria-expanded", String(open));
+    if (open && window.gsap && document.documentElement.classList.contains("motion")) {
+      gsap.fromTo(overlay.querySelectorAll("li a"), { yPercent: 110 }, { yPercent: 0, duration: .8, ease: "power3.out", stagger: .06 });
+    }
+    if (open) overlay.querySelector("button").focus();
+  }
+  burger.addEventListener("click", () => setMenu(true));
+  document.getElementById("close").addEventListener("click", () => { setMenu(false); burger.focus(); });
+  overlay.querySelectorAll("a").forEach(a => a.addEventListener("click", () => setMenu(false)));
+  addEventListener("keydown", e => { if (e.key === "Escape" && overlay.classList.contains("open")) { setMenu(false); burger.focus(); } });
+
+  // split the intro paragraph into words (for the scrub)
+  const scrub = document.getElementById("scrub");
+  scrub.innerHTML = scrub.textContent.trim().split(/\s+/).map(w => '<span class="w">' + esc(w) + "</span>").join(" ");
+
+  // hover preview images
+  const peek = document.getElementById("peek");
+  document.querySelectorAll("#list a").forEach(a => {
+    const img = new Image();
+    img.src = a.dataset.img; img.alt = ""; img.decoding = "async";
+    peek.appendChild(img);
+    a._img = img;
+  });
+})();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+(function () {
+  const root = document.documentElement;
+  const motion = root.classList.contains("motion") && window.gsap && window.ScrollTrigger;
+  const totop = document.getElementById("totop");
+  let lenis = null;
+
+  if (!motion) {
+    root.classList.remove("motion");
+    totop.addEventListener("click", () => scrollTo({ top: 0 }));
+    return;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+  const E_OUT = "power3.out", E_IO = "power2.inOut";
+  const desktop = matchMedia("(min-width: 761px) and (pointer: fine)").matches;
+
+  // smooth scrolling, tied to ScrollTrigger
+  if (window.Lenis) {
+    lenis = new Lenis({ lerp: 0.1 });
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add(t => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+    document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener("click", e => {
+      const id = a.getAttribute("href");
+      const el = id === "#top" ? 0 : document.querySelector(id);
+      if (el === null) return;
+      e.preventDefault();
+      lenis.scrollTo(el, { offset: id === "#top" ? 0 : -72, duration: 1.2 });
+    }));
+  }
+  totop.addEventListener("click", () => lenis ? lenis.scrollTo(0, { duration: 1.4 }) : scrollTo({ top: 0 }));
+
+  // hero intro (after the loader, or right away)
+  const heroLines = document.querySelectorAll(".hero h1 .line > span");
+  const heroRest = document.querySelectorAll(".hero .meta, .hero .rise");
+  const heroPlate = document.querySelector(".hero-plate .frame");
+  const heroImg = document.querySelector(".hero-plate img");
+  gsap.set(heroLines, { yPercent: 110 });
+  gsap.set(heroRest, { y: 24, autoAlpha: 0 });
+  gsap.set(heroPlate, { clipPath: "inset(100% 0% 0% 0%)" });
+  gsap.set(heroImg, { scale: 1.15 });
+  function playHero() {
+    const tl = gsap.timeline({ defaults: { ease: E_OUT } });
+    tl.to(heroLines, { yPercent: 0, duration: 1.05, stagger: .09 })
+      .to(heroPlate, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.1, ease: E_IO }, "-=.85")
+      .to(heroImg, { scale: 1, duration: 1.4 }, "<")
+      .to(heroRest, { y: 0, autoAlpha: 1, duration: .8, stagger: .07 }, "-=1.1");
+  }
+
+  // loader: once per session, max ~1.6 s, click or key to skip
+  const loader = document.getElementById("loader");
+  let seen = false;
+  try { seen = sessionStorage.getItem("pv-intro") === "1"; } catch (e) { seen = true; }
+  if (!seen) {
+    try { sessionStorage.setItem("pv-intro", "1"); } catch (e) { /* storage blocked: just play it */ }
+    loader.classList.add("show");
+    const count = document.getElementById("count");
+    const n = { v: 0 };
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      gsap.killTweensOf(n);
+      count.textContent = "39";
+      gsap.to(loader, { yPercent: -100, duration: .75, ease: E_IO, onComplete: () => loader.remove() });
+      gsap.delayedCall(.25, playHero);
+    };
+    gsap.to(n, { v: 39, duration: 1.1, ease: "power2.out", onUpdate: () => { count.textContent = String(Math.round(n.v)).padStart(2, "0"); }, onComplete: () => gsap.delayedCall(.25, finish) });
+    loader.addEventListener("click", finish);
+    addEventListener("keydown", finish, { once: true });
+  } else {
+    loader.remove();
+    playHero();
+  }
+
+  // text reveals: rise 24px and fade in at 85 % of the viewport, once
+  gsap.utils.toArray("main .rise:not(.hero .rise)").forEach(el => {
+    gsap.from(el, { y: 24, autoAlpha: 0, duration: .9, ease: E_OUT, scrollTrigger: { trigger: el, start: "top 85%", once: true } });
+  });
+  gsap.utils.toArray(".sec-head h2:not(.rise), .closing .big .line > span").forEach(el => {
+    gsap.from(el, { yPercent: 110, duration: 1, ease: E_OUT, scrollTrigger: { trigger: el, start: "top 88%", once: true } });
+  });
+  gsap.from(".list li", { y: 24, autoAlpha: 0, duration: .8, ease: E_OUT, stagger: .05, scrollTrigger: { trigger: ".list", start: "top 85%", once: true } });
+
+  // images: clip-path wipe with the inner image settling from 1.15 to 1
+  gsap.utils.toArray(".reveal-img").forEach(fig => {
+    const frame = fig.querySelector(".frame"), img = fig.querySelector("img");
+    const tl = gsap.timeline({ scrollTrigger: { trigger: fig, start: "top 85%", once: true } });
+    tl.from(frame, { clipPath: "inset(100% 0% 0% 0%)", duration: 1.1, ease: E_IO })
+      .from(img, { scale: 1.15, duration: 1.4, ease: E_OUT }, "<")
+      .from(fig.querySelector(".cap"), { y: 12, autoAlpha: 0, duration: .6, ease: E_OUT }, "-=.6");
+  });
+
+  // intro words: 20 % -> 100 % while scrolling through
+  gsap.to("#scrub .w", { opacity: 1, ease: "none", stagger: .1, scrollTrigger: { trigger: "#scrub", start: "top 80%", end: "bottom 45%", scrub: true } });
+
+  // subtle parallax on the big plates (desktop only)
+  if (desktop) {
+    gsap.utils.toArray(".plx .frame img").forEach(img => {
+      gsap.fromTo(img, { yPercent: -6 }, { yPercent: 6, ease: "none", scrollTrigger: { trigger: img.closest("figure"), start: "top bottom", end: "bottom top", scrub: true } });
+    });
+
+    // hover preview that follows the pointer over the feature list
+    const peek = document.getElementById("peek");
+    const list = document.getElementById("list");
+    const xTo = gsap.quickTo(peek, "x", { duration: .45, ease: E_OUT });
+    const yTo = gsap.quickTo(peek, "y", { duration: .45, ease: E_OUT });
+    list.addEventListener("pointermove", e => { xTo(e.clientX + 24); yTo(e.clientY); });
+    list.querySelectorAll("a").forEach(a => {
+      a.addEventListener("pointerenter", () => {
+        peek.querySelectorAll("img").forEach(i => i.classList.toggle("on", i === a._img));
+        gsap.to(peek, { autoAlpha: 1, scale: 1, duration: .25, ease: E_OUT });
+      });
+    });
+    list.addEventListener("pointerleave", () => gsap.to(peek, { autoAlpha: 0, scale: .9, duration: .2, ease: E_OUT }));
+  }
+
+  // fonts change line heights: recalc trigger positions once they are in
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
+})();
+</script>
+</body>
+</html>

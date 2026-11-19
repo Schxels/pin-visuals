@@ -20,7 +20,6 @@ public final class PopChams {
 	public record Ghost(double x, double y, double z, long born, long lifeMs) {
 	}
 
-	private static final double RISE = 0.9;
 
 	private static final Map<Integer, Ghost> GHOSTS = new ConcurrentHashMap<>();
 	private static int nextId = -2_000_000;
@@ -35,7 +34,7 @@ public final class PopChams {
 	/** Called (client side) when a player plays the totem event. */
 	public static void onPop(Player p) {
 		Minecraft mc = Minecraft.getInstance();
-		if (!enabled() || mc.level == null || p == mc.player || p.getId() < 0) {
+		if (!enabled() || mc.level == null || (p == mc.player && !Features.popSelf.b()) || p.getId() < 0) {
 			return;
 		}
 		spawn(mc.level, p);
@@ -115,11 +114,21 @@ public final class PopChams {
 				continue;
 			}
 			// ease out: fast at first, then slowing down
-			double rise = RISE * (1 - (1 - f) * (1 - f));
+			double rise = Features.popRise.get() * (1 - (1 - f) * (1 - f));
 			ent.setOldPosAndRot();
 			ent.setPos(g.x(), g.y() + rise, g.z());
 			ent.setDeltaMovement(0, 0, 0);
 		}
+	}
+
+	/** Ghost colour now (RGB), from the settings. */
+	public static int colorNow() {
+		return Features.popRainbow.b() ? Features.rainbow(1, 1600L) : Features.popColor.color() & 0xFFFFFF;
+	}
+
+	/** Strongest opacity of a ghost (0..255), from the alpha of the colour setting. */
+	public static int alphaNow() {
+		return Features.popRainbow.b() ? 0xA0 : Math.max(0x20, Features.popColor.color() >>> 24);
 	}
 
 	/** Ghost colour (ARGB without alpha) of a style at the given time. */

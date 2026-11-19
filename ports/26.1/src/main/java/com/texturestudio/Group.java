@@ -21,10 +21,15 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 				"block/obsidian", "block/crying_obsidian");
 		add("anchor", "Anchor", 0xFF8B5CF6, false, r -> r.startsWith("block/respawn_anchor"),
 				"block/respawn_anchor_top", "block/respawn_anchor_side4");
-		add("armor", "Armor", 0xFF9CA3AF, false,
-				r -> r.startsWith("entity/equipment/humanoid") || r.startsWith("models/armor/")
-						|| (r.startsWith("item/") && endsAny(r, "_helmet", "_chestplate", "_leggings", "_boots")),
-				"item/diamond_chestplate", "item/diamond_helmet", "item/netherite_chestplate", "item/iron_chestplate");
+		add("armor_diamond", "Diamond Armor", 0xFF67E8F9, false, r -> "diamond".equals(armorMaterial(r)),
+				"item/diamond_chestplate", "item/diamond_helmet");
+		add("armor_netherite", "Netherite Armor", 0xFF6B5B6E, false, r -> "netherite".equals(armorMaterial(r)),
+				"item/netherite_chestplate", "item/netherite_helmet");
+		// all other armor (iron, gold, chainmail, leather, turtle, trims ...)
+		add("armor", "Other Armor", 0xFF9CA3AF, false, r -> {
+			String m = armorMaterial(r);
+			return m != null && !m.equals("diamond") && !m.equals("netherite");
+		}, "item/iron_chestplate", "item/golden_chestplate", "item/chainmail_chestplate");
 		add("tools", "Tools", 0xFF60A5FA, false,
 				r -> r.startsWith("item/") && endsAny(r, "_sword", "_axe", "_pickaxe", "_shovel", "_hoe"),
 				"item/diamond_sword", "item/netherite_sword", "item/iron_sword", "item/diamond_pickaxe");
@@ -59,6 +64,8 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 		add("shield", "Shield", 0xFF22C55E, false, r -> r.startsWith("entity/shield") || r.equals("item/shield"),
 				"entity/shield_base_nopattern", "entity/shield/shield_base_nopattern", "item/shield");
 		add("mace", "Mace", 0xFF67E8F9, false, r -> r.startsWith("item/mace"), "item/mace");
+		add("spear", "Spear", 0xFF38BDF8, false, r -> r.startsWith("item/") && r.contains("_spear"),
+				"item/diamond_spear", "item/netherite_spear", "item/iron_spear");
 		add("trident", "Trident", 0xFF2DD4BF, false, r -> r.contains("trident"), "item/trident",
 				"entity/trident/trident", "entity/trident");
 		add("windcharge", "Wind Charge", 0xFFA5B4FC, false,
@@ -82,6 +89,7 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 		add("fx_hit", "Hit Colour", 0xFFF43F5E, true, r -> false);
 		add("fx_pop", "Pop Chams", 0xFFFACC15, true, r -> false);
 		add("fx_atmo", "Atmosphere", 0xFFA855F7, true, r -> false);
+		add("fx_outline", "Player Outline", 0xFF22D3EE, true, r -> false);
 
 		// Extras: alles, was oben nicht erfasst wurde, nach Ordner
 		add("x_block", "Blocks", 0xFF84CC16, true, r -> r.startsWith("block/"), "block/dirt", "block/oak_planks");
@@ -105,6 +113,7 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 			case "fx_hit" -> Cosmetics.Kind.HIT;
 			case "fx_pop" -> Cosmetics.Kind.POP;
 			case "fx_atmo" -> Cosmetics.Kind.ATMO;
+			case "fx_outline" -> Cosmetics.Kind.OUTLINE;
 			default -> null;
 		};
 	}
@@ -112,6 +121,30 @@ public record Group(String id, String label, int color, boolean extra, Predicate
 	private static void add(String id, String label, int color, boolean extra, Predicate<String> m,
 			String... previews) {
 		ALL.add(new Group(id, label, color, extra, m, List.of(previews)));
+	}
+
+	/**
+	 * Material of an armor texture ("diamond", "netherite", "iron" ...) or null if it is no armor texture. Covers the
+	 * worn armor (entity/equipment/humanoid*, old models/armor/..._layer_N) and the item icons.
+	 */
+	static String armorMaterial(String r) {
+		if (r.startsWith("entity/equipment/humanoid")) {
+			int slash = r.lastIndexOf('/');
+			String m = r.substring(slash + 1);
+			int cut = m.indexOf('_');
+			return cut > 0 ? m.substring(0, cut) : m;
+		}
+		if (r.startsWith("models/armor/")) {
+			String m = r.substring("models/armor/".length());
+			int cut = m.indexOf("_layer");
+			return cut > 0 ? m.substring(0, cut) : m;
+		}
+		if (r.startsWith("item/") && endsAny(r, "_helmet", "_chestplate", "_leggings", "_boots")) {
+			String m = r.substring("item/".length());
+			int cut = m.lastIndexOf('_');
+			return cut > 0 ? m.substring(0, cut) : m;
+		}
+		return null;
 	}
 
 	private static boolean endsAny(String s, String... suffixes) {

@@ -37,8 +37,9 @@ public class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 			float f = PopChams.progress(ghost);
 			int a = (int) Math.round(0xA0 * (1 - Math.pow(f, 2.5))); // stays clear, fades at the end
 			if (a > 2) {
-				int c = PopChams.color(Cosmetics.popChams, System.currentTimeMillis());
-				float grow = 1f + f * 0.12f;
+				int c = PopChams.colorNow();
+				a = a * PopChams.alphaNow() / 0xA0;
+				float grow = 1f + f * Features.popGrow.f() / 100f;
 				pose.pushPose();
 				pose.scale(grow, grow, grow);
 				out.submitModel(getParentModel(), s, pose, RenderTypes.entityTranslucentEmissive(Cosmetics.WHITE),
@@ -47,6 +48,7 @@ public class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 			}
 			return;
 		}
+		PlayerOutline.submit(getParentModel(), pose, out, s, Cosmetics.isLocal(s));
 		if (s.isInvisible || !Cosmetics.isLocal(s)) {
 			return;
 		}
@@ -68,11 +70,12 @@ public class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 			Cosmetics.Hat h = Cosmetics.hat(hat);
 			pose.pushPose();
 			getParentModel().head.translateAndRotate(pose);
-			pose.scale(1 / 16f, 1 / 16f, 1 / 16f);
+			float hs = Features.hatSize.f() / 100f / 16f;
+			pose.scale(hs, hs, hs);
 			if (s.headEquipment != null && !s.headEquipment.isEmpty()) {
 				pose.translate(0, -1.2f, 0); // ueber dem Helm
 			}
-			if (h.floating()) {
+			if (h.floating() && Features.hatFloat.b()) {
 				pose.translate(0, (float) Math.sin(s.ageInTicks * 0.08f) * 0.5f, 0);
 			}
 			int l = h.glow() ? FULL_BRIGHT : light;
@@ -92,7 +95,9 @@ public class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 			getParentModel().body.translateAndRotate(pose);
 			pose.scale(1 / 16f, 1 / 16f, 1 / 16f);
 			pose.translate(0, 3.0f, 2.6f);
-			float speed = s.isFallFlying ? 0.55f : 0.12f;
+			float ws = Features.wingSize.f() / 100f;
+			pose.scale(ws, ws, ws);
+			float speed = (s.isFallFlying ? 0.55f : 0.12f) * Features.wingSpeed.f() / 100f;
 			float amp = s.isFallFlying ? 28f : 9f;
 			float open = s.isFallFlying ? 72f : s.isCrouching ? 22f : 46f;
 			float flap = (float) Math.sin(s.ageInTicks * speed) * amp;

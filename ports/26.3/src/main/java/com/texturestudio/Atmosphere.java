@@ -100,9 +100,10 @@ public final class Atmosphere {
 			lastId = Cosmetics.atmosphere;
 		}
 		blend = on ? Math.min(1f, blend + 0.04f) : Math.max(0f, blend - 0.04f);
-		if (!on || mc.isPaused()) {
+		if (!on || mc.isPaused() || !Features.atmoParticles.b()) {
 			return;
 		}
+		float dens = Features.atmoDensity.f() / 100f;
 		ClientLevel level = mc.level;
 		Player p = mc.player;
 		String id = Cosmetics.atmosphere;
@@ -110,7 +111,7 @@ public final class Atmosphere {
 		float range = Math.max(6, Math.min(40, Tweaks.atmoRange)); // particles stay close, the fog goes further
 		int[] pal = palette(id);
 		float areaK = (float) Math.sqrt(range / 24f);
-		int mist = Math.round((1 + 5 * s) * areaK * blend);
+		int mist = Math.round((1 + 5 * s) * areaK * blend * dens);
 		for (int i = 0; i < mist; i++) {
 			double[] pos = spot(p, range, -1.0, 3.0);
 			int c = pal[RNG.nextInt(2)];
@@ -118,7 +119,7 @@ public final class Atmosphere {
 					pos[2], wind(), 0.004, wind());
 		}
 		// tinted swirls rising slowly (coloured "smoke")
-		int swirl = Math.round((1 + 2 * s) * areaK * blend);
+		int swirl = Math.round((1 + 2 * s) * areaK * blend * dens);
 		for (int i = 0; i < swirl; i++) {
 			if (RNG.nextFloat() < 0.6f) {
 				double[] pos = spot(p, range, -0.5, 2.0);
@@ -127,12 +128,12 @@ public final class Atmosphere {
 						pos[1], pos[2], 0, 0, 0);
 			}
 		}
-		if (RNG.nextFloat() < 0.35f + 0.5f * s) {
+		if (RNG.nextFloat() < (0.35f + 0.5f * s) * dens) {
 			double[] pos = spot(p, range, 0.0, 4.0);
 			level.addParticle(smoke(id), pos[0], pos[1], pos[2], wind(), 0.01, wind());
 		}
 		ParticleOptions acc = accent(id);
-		int accN = Math.round((0.6f + 2.4f * s) * areaK);
+		int accN = Math.round((0.6f + 2.4f * s) * areaK * dens);
 		for (int i = 0; i < accN; i++) {
 			if (RNG.nextFloat() < 0.7f) {
 				boolean falling = acc == ParticleTypes.SNOWFLAKE || acc == ParticleTypes.CHERRY_LEAVES;
@@ -158,7 +159,7 @@ public final class Atmosphere {
 
 	/** Should the fog be changed for this camera (effect on, camera not in water / lava / powder snow)? */
 	public static boolean fogActive(Camera camera) {
-		return blend > 0.001f && camera.getFluidInCamera() == FogType.NONE;
+		return blend > 0.001f && Features.atmoFog.b() && camera.getFluidInCamera() == FogType.NONE;
 	}
 
 	/**
@@ -177,7 +178,7 @@ public final class Atmosphere {
 		// the sky and clouds melt into the colour too, a bit further out
 		v[4] = lerp(v[4], Math.min(v[4], range * (7f - 4f * s)), b);
 		v[5] = lerp(v[5], Math.min(v[5], range * 2.5f), b);
-		int c = fog(lastId);
+		int c = Features.atmoCustom.b() ? Features.atmoColor.color() : fog(lastId);
 		float k = b * (0.45f + 0.5f * s);
 		color.set(lerp(color.x, ((c >> 16) & 255) / 255f, k), lerp(color.y, ((c >> 8) & 255) / 255f, k),
 				lerp(color.z, (c & 255) / 255f, k), color.w);
@@ -185,12 +186,12 @@ public final class Atmosphere {
 
 	/** Faint coloured vignette at the screen edges (HUD, below everything else). */
 	public static void extractHud(GuiGraphicsExtractor g, DeltaTracker delta) {
-		if (blend <= 0.01f || Minecraft.getInstance().player == null) {
+		if (blend <= 0.01f || Minecraft.getInstance().player == null || !Features.atmoVignette.b()) {
 			return;
 		}
 		int w = g.guiWidth();
 		int h = g.guiHeight();
-		int c = palette(lastId)[3] & 0xFFFFFF;
+		int c = (Features.atmoCustom.b() ? Features.atmoColor.color() : palette(lastId)[3]) & 0xFFFFFF;
 		int a = Math.round(0x70 * strength() * blend);
 		if (a < 3) {
 			return;

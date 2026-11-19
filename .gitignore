@@ -15,3 +15,8 @@ releases/
 *.iml
 .vscode/
 out/
+
+# website build output and design drafts (jars contain bundled packs, see releases/)
+website/downloads/
+*.zip
+menu-mockup/

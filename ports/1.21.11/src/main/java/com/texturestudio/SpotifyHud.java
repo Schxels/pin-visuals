@@ -68,10 +68,16 @@ public final class SpotifyHud {
 		int ch = height(style);
 		float ease = 1f - (1f - shown) * (1f - shown);
 		int slide = Math.round((1f - ease) * 12);
-		int x = right ? w - cw - 6 : 6;
-		int y = 6 - slide;
-		draw(g, mc.font, style, x, y, title, artist, Lyrics.position(), Lyrics.durationMs(), Lyrics.playing(),
-				hasCover ? COVER : null, ease);
+		float sc = Features.spotScale.f() / 100f;
+		int margin = Features.spotMargin.i();
+		float x = right ? w - cw * sc - margin : margin;
+		float y = margin - slide;
+		g.pose().pushMatrix();
+		g.pose().translate(x, y);
+		g.pose().scale(sc, sc);
+		draw(g, mc.font, style, 0, 0, title, artist, Lyrics.position(), Lyrics.durationMs(), Lyrics.playing(),
+				hasCover ? COVER : null, ease * Features.spotOpacity.f() / 100f);
+		g.pose().popMatrix();
 	}
 
 	/** Texture of the current album cover, or null. */

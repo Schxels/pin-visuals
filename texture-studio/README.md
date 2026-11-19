@@ -3,7 +3,27 @@
 Build: JDK 25, dann `.\gradlew.bat build`. Die fertige Mod liegt in `build/libs/pin-visuals-1.0.0.jar`
 (die Datei ohne `-sources`). Zum Testen: `.\gradlew.bat runClient`.
 
-Benutzung: Taste O (aenderbar unter Steuerung) oeffnet Pin Visuals.
+Benutzung: Taste O (aenderbar unter Steuerung) oeffnet das Pin-Visuals-Menue (`PinMenuScreen`); der
+Texturepack-Manager (`TextureStudioScreen`) liegt dort unter "Texture Packs".
+
+## Menu (`PinMenuScreen`, `PinSettings`, `Features`)
+
+White window: categories on the left (Render, Player, Texture Packs, HUD, Misc), feature cards with a switch,
+settings that fold out of a card, search on top (filters features and settings of all categories).
+- `Features` declares every feature and its settings. Older values stay in `MixConfig` (`texturestudio.json`; the
+  manager and the Studio tools still use them) and are bound; new ones are stored in
+  `config/pinvisuals/settings.json`. Every change applies at once, files are written when the mouse is released
+  or the menu closes.
+- Setting types / controls: switch, slider (click the number to type it), colour (field, hue, alpha, hex, presets),
+  dropdown, key (click, press a key; Esc / Backspace / right click = none), text; reset per setting and per feature.
+- Toggle keys are read straight from GLFW in the client tick (`Features.tickKeys`), only while no screen is open; a
+  small toast shows the new state.
+- Drawing is immediate mode: each control records its click zone while it is drawn. `FillBatch` got a software clip
+  (scrolling list, folding cards) and a transform (open / close: fade + slight scale); text uses the real scissor.
+- Colour presets picked in the manager (Extras: outline, pop chams, hit colour) are copied into the settings
+  (`Features.presetChosen`).
+- `Tweaks.LOW_FIRE_OFFSET`, `LOW_SHIELD_OFFSET` and `FAR_ITEM_DISTANCE` are no longer constants (settings).
+- Not done on purpose: player outline through walls (needs an own no-depth pipeline and is a wallhack).
 Packs werden aus dem resourcepacks-Ordner gelesen (ZIP oder entpackter Ordner).
 Links eine Sammlung waehlen, in der Mitte auf einen Stil klicken: er wird sofort angewendet.
 Daraus entsteht das Pack "PinVisuals-Mix", das automatisch ganz oben aktiviert wird.
@@ -120,19 +140,25 @@ the lines follow the view direction only slowly so they drift a little when turn
 - `HitColor` (Kind HIT, group `fx_hit`): repaints rows 0..7 (the red "hurt" rows) of the 16x16 entity colour
   overlay texture (`OverlayTextureMixin` grabs it after the constructor). Affects every mob and player hit flash.
   Rainbow re-uploads the texture every tick.
-- `PopChams` (Kind POP, group `fx_pop`): `LivingEntityPopMixin` catches entity event 35 (totem used) for other
-  players and spawns a client-only `RemotePlayer` copy (negative id, random UUID, otherwise the level refuses it,
+- `PopChams` (Kind POP, group `fx_pop`): `TotemPopMixin` catches entity event 35 (totem used) in
+  `ClientPacketListener.handleEntityEvent` (the client never passes 35 on to the entity) for other players and spawns a client-only `RemotePlayer` copy (negative id, random UUID, otherwise the level refuses it,
   invisible) in the same pose. `CosmeticLayer` draws that copy as an emissive translucent model in the picked colour;
   it rises 0.9 blocks, grows a little and fades out over 1.3 s. Clicking a style spawns a preview ghost of yourself
   3 blocks in front. 26.3's `submitModel` has no crumbling argument. The "Ghost time" slider (0.5 .. 5 s,
   `MixConfig.popSeconds`) sets how long a ghost stays; it stays clear and fades out at the end.
 - `Atmosphere` (Kind ATMO, group `fx_atmo`): coloured mood around you with sliders Range (8 .. 96 blocks) and
   Strength (10 .. 100 %). `FogRendererMixin` pulls Minecraft's fog in to the range and tints it (also sky and clouds,
-  not under water / lava); 26.x changes the returned `FogData`, 1.21.11 changes the arguments of `updateBuffer`.
+  not under water / lava); 26.x changes the `FogData` at the start of `updateBuffer(FogData)`
+  (after Sodium Extra's own fog changes, which would otherwise undo it), 1.21.11 changes the arguments of `updateBuffer`.
   Around the player (never closer than 5.5 blocks, so puffs do not cover the screen) it spawns coloured dust mist,
   tinted swirls, smoke and one style particle (snowflakes, cherry petals, flames, fireflies ...), plus a faint
   coloured vignette on the HUD. Styles: Mystic Haze, Deep Ocean, Ember Storm, Frost, Sakura, Toxic Swamp,
   Firefly Night, Void.
+- `PlayerOutline` (Kind OUTLINE, group `fx_outline`): coloured line around other players that blocks hide (no
+  wallhack). `CosmeticLayer` draws the player model 8 more times in the flat colour, each copy moved a little
+  sideways as seen from the camera and scaled around the camera so it lies 0.24 blocks behind the player: the player
+  covers the copies, only the rim stays, and terrain in front hides them with the normal depth test. Width grows
+  slightly with distance so it shows past armor up close and stays visible far away.
 
 ## Pig packs
 
@@ -211,3 +237,71 @@ The whole menu is English (strings in the code, no translation files besides `en
 
 Trident: `item/trident` und die Modell-Textur (alter Pfad `entity/trident.png` wird beim Mix nach
 `entity/trident/trident.png` kopiert). Wind Charge: Item, Geschoss und die Gust-Partikel.
+
+## Studio (sidebar -> Studio)
+
+Tool windows share `ToolScreen` (same look as the menu, controls read the mouse state every frame, no blur behind
+live tools so changes show in game while the window is open). Opening any window slides up and fades in; the main
+menu does the same (`openedAt`).
+
+- `CrosshairScreen` / `Crosshair`: replaces the vanilla crosshair HUD element (`HudElementRegistry.replaceElement`)
+  when on. Shapes cross, dot, circle, T, X, box; colour, gap, length, thickness, centre dot, outline.
+- `BlockOutlineScreen` / `mixin/BlockOutlineMixin`: redirects the hit-outline call (26.2/26.3 `submitHitOutline`,
+  26.1/1.21.11 `renderHitOutline`): colour or rainbow, thickness (1..10), glow = two wider faint lines underneath.
+  The black high-contrast line is skipped while the custom outline is on.
+- `ViewmodelScreen` / `mixin/ViewmodelMixin`: after `applyItemArmTransform` (26.3: `FirstPersonHandsAndItemsRenderer`)
+  moves, turns and scales the held item; the left hand is mirrored.
+- `PixelEditorScreen`: lists the game's textures (block, item, entity, particle, mob_effect, painting), paints over the
+  current texture (pen, eraser, picker, fill, undo, colours used in the texture) and saves it to
+  `config/pinvisuals/edits/assets/...` (with the animation `.mcmeta`). `MixBuilder` copies that folder into the Mix pack
+  last, so edits win over every pack. Reset removes the edit.
+- Cape Designer = `PixelEditorScreen` in cape mode: 10x16 design in `config/pinvisuals/cape.png`; `CapeStore` builds a
+  128x64 cape texture from it (outside = design, inside darker mirror, edges in the average colour) and the cape
+  "My Design" is worn.
+- `PackBrowserScreen`: Modrinth API v2 (`/search` with `project_type:resourcepack` and the running game version,
+  `/project/{id}/version`), icons (PNG/JPEG; WebP shows a letter), downloads only from `cdn.modrinth.com`, SHA-1
+  checked, into the resourcepacks folder; the menu rescans the packs afterwards.
+- Settings -> "Pin Visuals menu": `PinTitleScreen` replaces the vanilla title screen (tick hook; "Vanilla menu" for this
+  session) and `mixin/LoadingOverlayMixin` paints a white loading screen with the mark and a gradient bar (plain
+  shapes only, the first load has no fonts yet); the vanilla logo, bar and red background are hidden meanwhile.
+- First-start tour: modal `TOUR` (8 steps, highlights the sidebar item), shown once (`tourDone`), again from Settings.
+
+## Menu (O) and settings
+
+`PinMenuScreen` is the main menu: light, sidebar with categories (Render, Player, Texture Packs, HUD, Misc), feature
+cards with switch, unfolding settings, search over features and settings ("colour" = "color"). Widgets: switch,
+slider (click the number to type), colour picker (field, hue, alpha, hex), dropdown, key field (per feature toggle
+key, Backspace clears), text field, reset per setting and per feature. `PinSettings` holds typed settings
+(config/pinvisuals/settings.json, older values stay bound to texturestudio.json); `Features` declares every feature.
+The texture pack manager (`TextureStudioScreen`) and the Studio tools use the same light look.
+
+New features:
+- Hurt Cam (`mixin/HurtCamMixin`): the hurt shake is interpolated towards "no shake" by the strength.
+- Zoom (key C, `Zoom`, `mixin/CameraFovMixin`, `mixin/MouseScrollMixin`): smooth FOV zoom, mouse wheel while zoomed,
+  optional cinematic camera and hidden hand.
+- Motion Blur (`MotionBlur`, `post_effect/motion_blur_1..9.json`, `shaders/post/motion_blur.fsh`): post effect with a
+  persistent "previous" target; one file per strength step. Not in 26.3 (post effects changed there).
+- Trail (`Trail`): particles behind you (12 kinds, colour / rainbow for dust and swirls, length = particle life, amount
+  per block, only while sprinting, first person on / off).
+- Swing Animation (`mixin/SwingMixin`, `mixin/OldSwingMixin`): custom swing speed, "1.7" (no item dip after a hit),
+  "Mining fatigue" like the Fake Fatigue mod. Not in 26.3.
+- Lyrics "Scrambled in the sky" (`LyricsSky`): world-anchored blocks, yaw-only billboard, rows of 2..4 words,
+  words pop in (backOut) with stable hash-based tilt / offset; Enhanced LRC word times are read when present.
+  Settings: word tilt, lines at once, distance, size, sync offset (offset also for the calm style).
+
+## Freelook, knives, sky designer, presets, key check
+
+- `KeyGuard`: on the first start the Pin Visuals keys (zoom C, freelook Left Alt, inspect knife Y) are checked against
+  all other key mappings; a taken key moves once to a free one (note in the toast). Fixes the double zoom with NoRisk.
+- `Freelook` + `mixin/FreelookCameraMixin` (camera reads the freelook angles instead of `getViewYRot/XRot`;
+  1.21.11: `Camera.setup`) + `mixin/FreelookTurnMixin` (`Entity.turn` turns only the camera). Hold or toggle,
+  optional third person, mouse speed, invert.
+- `Knives` + `mixin/KnifeModelMixin` (`ItemModelResolver.updateForTopItem`: your held sword gets the knife's
+  `item_model`, only for your own hands): Butterfly, Karambit, Bayonet, Flip Knife in Steel, Fade, Doppler, Crimson
+  Web, Gold, Night (models/textures generated, `assets/texturestudio/models/item/knife`). Inspect key: the butterfly
+  flips like the Butterfly Knife mod (`mixin/KnifeTrickMixin`, not in 26.3), the others twirl.
+- `SkyGen` / `SkyDesignerScreen` (Studio): strings, lightning or aurora sky with colours, count, thickness, glow; writes
+  the pack `PinVisuals Sky` (OptiFine sky for Skyboxify) and puts it into the Mix. Curves use only cos(4n * azimuth), so
+  the six cube faces always fit together.
+- `Presets` / `PresetsScreen` (All Settings -> Misc -> Presets): save / load / delete the whole setup (feature switches
+  and settings, not the toggle keys) in config/pinvisuals/presets; three ready-made ones.

@@ -40,5 +40,8 @@
   "texturestudio.col.shield": "Shield",
   "texturestudio.col.mace": "Mace",
   "texturestudio.col.cobwebs": "Cobwebs",
-  "texturestudio.col.all": "Whole packs"
+  "texturestudio.col.all": "Whole packs",
+  "key.texturestudio.zoom": "Zoom (hold)",
+  "key.texturestudio.freelook": "Freelook (hold)",
+  "key.texturestudio.inspect": "Inspect knife"
 }

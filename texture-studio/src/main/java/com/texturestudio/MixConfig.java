@@ -22,6 +22,8 @@ public final class MixConfig {
 	public Map<String, String> styles = new TreeMap<>();
 	/** Eintraege der Form "sammlung|pack" */
 	public Set<String> favorites = new TreeSet<>();
+	/** Feature ids marked with the star in All Settings. */
+	public Set<String> featureFavs = new TreeSet<>();
 	/** Preset-ID (glass, halloween, ...) oder "custom" fuer die frei gewaehlte Farbe {@link #customColor}. */
 	public String accent = "amethyst";
 	public int customColor = 0xFF9B5CFF;
@@ -70,14 +72,64 @@ public final class MixConfig {
 	public float popSeconds = 1.3f;
 	/** Atmosphere style (see Atmosphere); "none" = off. */
 	public String atmosphere = "none";
+	/** Player outline colour (see PlayerOutline); "none" = off. */
+	public String outline = "none";
 	/** Atmosphere range in blocks (8 .. 96) and strength in percent (10 .. 100). */
 	public int atmoRange = 32;
 	public int atmoStrength = 60;
 
+	// Studio: crosshair designer (see Crosshair)
+	public boolean crossOn;
+	/** 0 cross, 1 dot, 2 circle, 3 T, 4 X, 5 square */
+	public int crossShape;
+	public int crossColor = 0xFFFFFFFF;
+	public int crossGap = 2;
+	public int crossLen = 4;
+	public int crossThick = 1;
+	public boolean crossDot;
+	public boolean crossOutline = true;
+
+	// Studio: block outline (see mixin/BlockOutlineMixin)
+	public boolean blockOutlineOn;
+	public int blockOutlineColor = 0xFF22D3EE;
+	public boolean blockOutlineRainbow;
+	/** Thickness 1 .. 10 (4 = a bit thicker than vanilla). */
+	public int blockOutlineWidth = 4;
+	/** Glow 0 .. 100 %. */
+	public int blockOutlineGlow = 40;
+
+	// Studio: viewmodel (see mixin/ViewmodelMixin); positions in 1/100 blocks, rotations in degrees
+	public boolean vmOn;
+	public int vmX;
+	public int vmY;
+	public int vmZ;
+	public int vmRotX;
+	public int vmRotY;
+	public int vmRotZ;
+	/** Item size in percent (30 .. 200). */
+	public int vmScale = 100;
+
+	/** White Pin Visuals title and loading screen instead of the vanilla ones. */
+	public boolean pinMenu;
+	// Studio: Sky Designer (see SkyGen)
+	public int skyStyle;
+	public int skyTop = 0xFF050507;
+	public int skyHorizon = 0xFF3A3D44;
+	public int skyLine = 0xFFFFFFFF;
+	public int skyCount = 9;
+	public int skyWidth = 3;
+	public int skyGlow = 70;
+	public long skySeed = 7;
+
+	/** Key conflicts were checked once (see KeyGuard). */
+	public int keyCheck;
+	/** The first-start tour was shown. */
+	public boolean tourDone;
+
 	/** Wurde der Spieler schon gefragt, ob er die mitgelieferten Packs installieren will? */
 	public boolean packOfferDone;
 	/** Version der Oberflaeche; aeltere Konfigurationen bekommen das neue Standardthema. */
-	public int uiVersion = 8;
+	public int uiVersion = 11;
 
 	private static Path file() {
 		return FabricLoader.getInstance().getConfigDir().resolve("texturestudio.json");
@@ -116,6 +168,26 @@ public final class MixConfig {
 							c.accent = "aurora";
 						}
 						c.uiVersion = 8;
+					}
+					if (c.uiVersion < 10) {
+						// once: back to the dark Nebula look, if the white look was only set automatically
+						if ("weiss".equals(c.menuTheme) && "custom".equals(c.accent)
+								&& c.customColor == Features.DEFAULT_ACCENT) {
+							c.menuTheme = "lila";
+							c.accent = "amethyst";
+							c.customColor = 0xFF9B5CFF;
+							c.opacity = 95;
+						}
+						c.uiVersion = 10;
+					}
+					if (c.uiVersion < 11) {
+						// once: armor was split into diamond, netherite and other armor; keep the chosen style
+						String armor = c.styles.get("armor");
+						if (armor != null) {
+							c.styles.putIfAbsent("armor_diamond", armor);
+							c.styles.putIfAbsent("armor_netherite", armor);
+						}
+						c.uiVersion = 11;
 					}
 					if (c.opacity < 40 || c.opacity > 100) {
 						c.opacity = 95;

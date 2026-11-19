@@ -40,19 +40,25 @@ public final class HitColor {
 		};
 	}
 
-	/** Called every client tick: repaints the overlay when the style changed (every tick for rainbow). */
+	/** Overlay colour now (ARGB, alpha = strength): vanilla red when the feature is off, else from the settings. */
+	static int colorNow() {
+		if (Cosmetics.NONE.equals(Cosmetics.hitColor)) {
+			return VANILLA;
+		}
+		if (Features.hitRainbow.b()) {
+			return 0xB2000000 | Features.rainbow(Features.hitSpeed.get(), 2400L);
+		}
+		return Features.hitColor.color();
+	}
+
+	/** Called every client tick: repaints the overlay when the colour changed (every tick for rainbow). */
 	public static void tick() {
 		DynamicTexture t = texture;
-		if (t == null) {
+		if (t == null || Features.hitColor == null) {
 			return;
 		}
-		String id = Cosmetics.hitColor;
-		boolean animated = "rainbow".equals(id);
-		if (id.equals(applied) && !animated) {
-			return;
-		}
-		int c = color(id, System.currentTimeMillis());
-		if (id.equals(applied) && c == lastRgb) {
+		int c = colorNow();
+		if ("set".equals(applied) && c == lastRgb) {
 			return;
 		}
 		try {
@@ -66,13 +72,11 @@ public final class HitColor {
 				}
 			}
 			t.upload();
-			applied = id;
-			lastRgb = c;
 		} catch (RuntimeException e) {
 			TextureStudioClient.LOGGER.warn("Pin Visuals: could not change the hit colour", e);
-			applied = id;
-			lastRgb = c;
 		}
+		applied = "set";
+		lastRgb = c;
 	}
 
 	static int hsv(float h) {

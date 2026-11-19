@@ -1,0 +1,19 @@
+package com.texturestudio.mixin;
+
+import com.texturestudio.Hooks;
+import net.minecraft.client.gui.Hud;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+
+/** Item swap animation: the hotbar selection slides to the new slot. */
+@Mixin(Hud.class)
+public class HotbarGlideMixin {
+
+	@ModifyArg(method = "extractItemHotbar", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIII)V",
+			ordinal = 1), index = 2, require = 0)
+	private int pinvisuals$glide(int x) {
+		return x + Hooks.hotbarGlide();
+	}
+}

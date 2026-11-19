@@ -1,25 +1,26 @@
 package com.texturestudio.mixin;
 
 import com.texturestudio.Atmosphere;
-import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.fog.FogRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Atmosphere: pulls the fog in and tints it (see {@link Atmosphere#applyFog}). */
+/**
+ * Atmosphere: pulls the fog in and tints it (see {@link Atmosphere#applyFog}).
+ * <p>
+ * Changed in updateBuffer (right before the fog goes to the GPU) and not at the end of setupFog: mods like Sodium
+ * Extra change the fog after setupFog and would otherwise undo it.
+ */
 @Mixin(FogRenderer.class)
 public abstract class FogRendererMixin {
 
-	@Inject(method = "setupFog", at = @At("RETURN"))
-	private void texturestudio$atmosphere(Camera camera, int renderDistance, DeltaTracker delta, float darken,
-			ClientLevel level, CallbackInfoReturnable<FogData> cir) {
-		FogData d = cir.getReturnValue();
-		if (d == null || !Atmosphere.fogActive(camera)) {
+	@Inject(method = "updateBuffer(Lnet/minecraft/client/renderer/fog/FogData;)V", at = @At("HEAD"))
+	private void texturestudio$atmosphere(FogData d, CallbackInfo ci) {
+		if (d == null || !Atmosphere.fogActive(Minecraft.getInstance().gameRenderer.mainCamera())) {
 			return;
 		}
 		float[] v = { d.environmentalStart, d.environmentalEnd, d.renderDistanceStart, d.renderDistanceEnd, d.skyEnd,

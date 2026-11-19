@@ -37,33 +37,33 @@ public class TextureStudioScreen extends Screen {
 
 	// ---- Palette (dunkel)
 	// ---- Palette: wird je nach Modus (hell = weiss/blau, dunkel) in applyPalette() gesetzt
-	private int WIN;
-	private int SIDEBAR;
-	private int PANEL;
-	private int CARD;
-	private int CARD_HI;
-	private int SEL;
-	private int FIELD;
+	int WIN;
+	int SIDEBAR;
+	int PANEL;
+	int CARD;
+	int CARD_HI;
+	int SEL;
+	int FIELD;
 	private int PLATE_TOP;
 	private int PLATE_TOP_HI;
 	private int PLATE_BOTTOM;
 	private int PLATE;
 	private int PLATE_CHECK;
-	private int LINE;
-	private int BORDER;
-	private int BORDER_HI;
-	private int TEXT;
-	private int SOFT;
-	private int DIM;
-	private int FAINT;
-	private int HOVER; // Grundfarbe fuer Hover-Schleier
-	private int TRACK; // Schienen von Reglern/Scrollleisten
-	private int DIMMER; // Abdunklung hinter dem Fenster
+	int LINE;
+	int BORDER;
+	int BORDER_HI;
+	int TEXT;
+	int SOFT;
+	int DIM;
+	int FAINT;
+	int HOVER; // Grundfarbe fuer Hover-Schleier
+	int TRACK; // Schienen von Reglern/Scrollleisten
+	int DIMMER; // Abdunklung hinter dem Fenster
 	private static final int GREEN = 0xFF22C55E;
 	private static final int GOLD = 0xFFF5B82E;
 	private static final int RED = 0xFFEF4444;
 	private static final String TITLE = "Pin Visuals";
-	private static final Identifier LOGO = Identifier.fromNamespaceAndPath(TextureStudioClient.MOD_ID,
+	static final Identifier LOGO = Identifier.fromNamespaceAndPath(TextureStudioClient.MOD_ID,
 			"textures/gui/logo.png");
 
 	/** Colour theme: a three-colour gradient (color -> c2 -> c3); glassy = see-through frosted window. */
@@ -112,22 +112,25 @@ public class TextureStudioScreen extends Screen {
 	private static final Map<String, ItemStack> ICONS = new HashMap<>();
 
 	private final Screen parent;
-	private final MixConfig config = MixConfig.load();
+	final MixConfig config = MixConfig.load();
 	private final PreviewCache previews = new PreviewCache();
 	private final String version = FabricLoader.getInstance().getModContainer(TextureStudioClient.MOD_ID)
 			.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
-	private PackIndex index;
+	PackIndex index;
 
 	private final List<AbstractWidget> dynamic = new ArrayList<>();
 	private final List<Hit> hits = new ArrayList<>();
 	private final List<CardRect> cards = new ArrayList<>();
 	private final Map<Long, Float> anim = new HashMap<>();
 	private long lastNanos = System.nanoTime();
+	private long openedAt = System.nanoTime();
+	/** Left mouse button held (from click events; menus get no mouse state otherwise). */
+	private boolean leftDown;
 	private float dt = 0.016f;
 	private EditBox search;
 	private boolean searchAdded;
 	/** Gewaehlte Menue-Schrift (siehe {@link MenuFonts}). */
-	private Font uiFont;
+	Font uiFont;
 
 	// Zustand
 	private boolean themesTab;
@@ -146,8 +149,11 @@ public class TextureStudioScreen extends Screen {
 
 	// Pack-Sammlung (Dialog ueber dem Fenster)
 	private enum Modal {
-		NONE, OFFER, SELECT, PROGRESS, DONE, OPTIONS, SETTINGS
+		NONE, OFFER, SELECT, PROGRESS, DONE, OPTIONS, SETTINGS, STUDIO, TOUR
 	}
+
+	/** Step of the first-start tour. */
+	private int tourStep;
 
 	private Modal modal = Modal.NONE;
 	private final List<Hit> modalHits = new ArrayList<>();
@@ -259,11 +265,16 @@ public class TextureStudioScreen extends Screen {
 		return MENU_THEMES.get(0);
 	}
 
-	private int WIN_BORDER;
+	int WIN_BORDER;
 
 	private int paletteKey;
 
 	/** The colour theme tints the whole menu: rebuild the palette when it changed. */
+	/** For the settings menu: the palette of the current theme (cheap, so it can follow theme changes at once). */
+	void ensureThemePalette() {
+		applyPalette();
+	}
+
 	private void ensurePalette() {
 		int key = accent() * 31 + acc3();
 		if (key != paletteKey) {
@@ -302,22 +313,22 @@ public class TextureStudioScreen extends Screen {
 			DIMMER = 0x66000000;
 			WIN_BORDER = mix(0xFFCBD5E4, c, 0.18f);
 		} else {
-			int d = 0xFF08070E;
-			WIN = mix(d, c, 0.10f);
-			SIDEBAR = mix(d, c, 0.13f);
-			PANEL = mix(d, c, 0.12f);
-			CARD = mix(d, c, 0.17f);
-			CARD_HI = mix(d, c, 0.25f);
-			SEL = mix(d, c, 0.30f);
-			FIELD = mix(d, c, 0.14f);
-			PLATE_TOP = mix(d, c, 0.30f);
-			PLATE_TOP_HI = mix(d, c, 0.38f);
-			PLATE_BOTTOM = mix(d, c, 0.08f);
-			PLATE = mix(d, c, 0.12f);
-			PLATE_CHECK = mix(d, c, 0.16f);
-			LINE = mix(d, c, 0.22f);
-			BORDER = mix(0xFF22202E, c, 0.30f);
-			BORDER_HI = mix(0xFF3C3A50, c, 0.50f);
+			int d = 0xFF0B0A10;
+			WIN = mix(d, c, 0.05f);
+			SIDEBAR = mix(d, c, 0.035f);
+			PANEL = mix(d, c, 0.06f);
+			CARD = mix(0xFF131119, c, 0.07f);
+			CARD_HI = mix(0xFF1A1722, c, 0.12f);
+			SEL = mix(d, c, 0.22f);
+			FIELD = mix(0xFF09080D, c, 0.05f);
+			PLATE_TOP = mix(d, c, 0.22f);
+			PLATE_TOP_HI = mix(d, c, 0.30f);
+			PLATE_BOTTOM = mix(d, c, 0.05f);
+			PLATE = mix(d, c, 0.08f);
+			PLATE_CHECK = mix(d, c, 0.11f);
+			LINE = mix(0xFF1B1924, c, 0.10f);
+			BORDER = mix(0xFF25222F, c, 0.16f);
+			BORDER_HI = mix(0xFF3E3A4E, c, 0.35f);
 			TEXT = 0xFFF3F0FF;
 			SOFT = mix(0xFFD0CCE0, c, 0.10f);
 			DIM = mix(0xFF9C98B0, c, 0.15f);
@@ -329,7 +340,7 @@ public class TextureStudioScreen extends Screen {
 		}
 	}
 
-	private int accent() {
+	int accent() {
 		if ("custom".equals(config.accent)) {
 			return 0xFF000000 | (config.customColor & 0xFFFFFF);
 		}
@@ -355,7 +366,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Third gradient colour of the theme. */
-	private int acc3() {
+	int acc3() {
 		Theme t = theme();
 		return t != null ? t.c3() : hsv(hueOf(accent()) + 0.18f, 0.6f, 1f);
 	}
@@ -367,7 +378,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Textfarbe, die auf der Akzentfarbe gut lesbar ist. */
-	private int onAccent() {
+	int onAccent() {
 		int c = accent();
 		double lum = 0.299 * ((c >> 16) & 255) + 0.587 * ((c >> 8) & 255) + 0.114 * (c & 255);
 		return lum > 140 ? 0xFF0B0C10 : 0xFFFFFFFF;
@@ -378,11 +389,11 @@ public class TextureStudioScreen extends Screen {
 		return alpha(argb, opacity() * 255 / 100);
 	}
 
-	private static int alpha(int argb, int a) {
+	static int alpha(int argb, int a) {
 		return (Math.max(0, Math.min(255, a)) << 24) | (argb & 0xFFFFFF);
 	}
 
-	private static int mix(int a, int b, float t) {
+	static int mix(int a, int b, float t) {
 		t = Math.max(0f, Math.min(1f, t));
 		int aa = (int) (((a >>> 24) & 255) * (1 - t) + ((b >>> 24) & 255) * t);
 		int rr = (int) (((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t);
@@ -391,7 +402,7 @@ public class TextureStudioScreen extends Screen {
 		return (aa << 24) | (rr << 16) | (gg << 8) | bb;
 	}
 
-	private static int hsv(float h, float s, float v) {
+	static int hsv(float h, float s, float v) {
 		h = ((h % 1f) + 1f) % 1f;
 		float r;
 		float g;
@@ -412,7 +423,7 @@ public class TextureStudioScreen extends Screen {
 		return 0xFF000000 | (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
 	}
 
-	private static float hueOf(int c) {
+	static float hueOf(int c) {
 		float r = ((c >> 16) & 255) / 255f;
 		float g = ((c >> 8) & 255) / 255f;
 		float b = (c & 255) / 255f;
@@ -437,7 +448,7 @@ public class TextureStudioScreen extends Screen {
 	// ================================================================== Zeichen-Helfer
 
 	/** Gefuelltes Rechteck mit abgerundeten Ecken. */
-	private static void rrect(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+	static void rrect(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
 		if (w <= 0 || h <= 0) {
 			return;
 		}
@@ -455,7 +466,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Abgerundetes Rechteck mit 1px Rahmen. */
-	private static void rbox(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int fill, int border) {
+	static void rbox(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int fill, int border) {
 		rrect(g, x, y, w, h, r, border);
 		rrect(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
 	}
@@ -464,7 +475,7 @@ public class TextureStudioScreen extends Screen {
 	 * Senkrechter Verlauf, oben/unten wahlweise abgerundet. Only the rounded rows are drawn one by one; the straight
 	 * middle part is drawn in a few colour bands (every separate rectangle costs time in the GUI renderer).
 	 */
-	private static void vgrad(GuiGraphicsExtractor g, int x, int y, int w, int h, int rTop, int rBottom, int c1,
+	static void vgrad(GuiGraphicsExtractor g, int x, int y, int w, int h, int rTop, int rBottom, int c1,
 			int c2) {
 		if (w <= 0 || h <= 0) {
 			return;
@@ -493,13 +504,13 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Weicher Schlagschatten aus mehreren fast durchsichtigen Lagen. */
-	private static void shadow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int layers, int a) {
+	static void shadow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int layers, int a) {
 		for (int i = layers; i >= 1; i--) {
 			rrect(g, x - i, y - i + 2, w + 2 * i, h + 2 * i, r + i, alpha(0x000000, a));
 		}
 	}
 
-	private static void glow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int layers, int color, int a) {
+	static void glow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int layers, int color, int a) {
 		for (int i = layers; i >= 1; i--) {
 			rrect(g, x - i, y - i, w + 2 * i, h + 2 * i, r + i, alpha(color, a));
 		}
@@ -535,7 +546,7 @@ public class TextureStudioScreen extends Screen {
 	private static final String[] I_DOWN = { "...#...", "...#...", "...#...", "#..#..#", ".#.#.#.", "..###..", "#######" };
 
 	/** Pixel icon from a pattern ('#' = pixel). */
-	private static void glyph(GuiGraphicsExtractor g, String[] rows, int x, int y, int color) {
+	static void glyph(GuiGraphicsExtractor g, String[] rows, int x, int y, int color) {
 		for (int r = 0; r < rows.length; r++) {
 			String s = rows[r];
 			int c = 0;
@@ -555,7 +566,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Horizontal gradient with rounded corners. */
-	private static void hgrad(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int c1, int c2) {
+	static void hgrad(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int c1, int c2) {
 		if (w <= 0 || h <= 0) {
 			return;
 		}
@@ -580,7 +591,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Horizontal gradient through three colours (c1 -> c2 -> c3) with rounded ends. */
-	private static void hgrad3(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int c1, int c2, int c3) {
+	static void hgrad3(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int c1, int c2, int c3) {
 		if (w <= 0 || h <= 0) {
 			return;
 		}
@@ -605,7 +616,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** 1px rounded outline only (so translucent fills never show a border colour through them). */
-	private static void outline(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+	static void outline(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
 		if (w <= 1 || h <= 1) {
 			return;
 		}
@@ -633,7 +644,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Filled ellipse. */
-	private static void ellipse(GuiGraphicsExtractor g, int cx, int cy, int rx, int ry, int color) {
+	static void ellipse(GuiGraphicsExtractor g, int cx, int cy, int rx, int ry, int color) {
 		if (rx <= 0 || ry <= 0) {
 			return;
 		}
@@ -650,7 +661,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Soft round light: two stacked translucent ellipses. */
-	private static void halo(GuiGraphicsExtractor g, int cx, int cy, int rx, int ry, int color, int a) {
+	static void halo(GuiGraphicsExtractor g, int cx, int cy, int rx, int ry, int color, int a) {
 		ellipse(g, cx, cy, rx, ry, alpha(color, a));
 		ellipse(g, cx, cy, Math.round(rx * 0.6f), Math.round(ry * 0.6f), alpha(color, a));
 	}
@@ -720,27 +731,27 @@ public class TextureStudioScreen extends Screen {
 		g.pose().popMatrix();
 	}
 
-	private void text(GuiGraphicsExtractor g, String s, int x, int y, int color) {
+	void text(GuiGraphicsExtractor g, String s, int x, int y, int color) {
 		FillBatch.flush(g).text(uiFont, s, x, y, color, false);
 	}
 
-	private void bold(GuiGraphicsExtractor g, String s, int x, int y, int color) {
+	void bold(GuiGraphicsExtractor g, String s, int x, int y, int color) {
 		FillBatch.flush(g).text(uiFont, s, x, y, color, false);
 		if (!MenuFonts.smooth(config.font)) {
 			FillBatch.flush(g).text(uiFont, s, x + 1, y, color, false);
 		}
 	}
 
-	private void ctext(GuiGraphicsExtractor g, String s, int centerX, int y, int color) {
+	void ctext(GuiGraphicsExtractor g, String s, int centerX, int y, int color) {
 		FillBatch.flush(g).text(uiFont, s, centerX - uiFont.width(s) / 2, y, color, false);
 	}
 
-	private void rtext(GuiGraphicsExtractor g, String s, int rightX, int y, int color) {
+	void rtext(GuiGraphicsExtractor g, String s, int rightX, int y, int color) {
 		FillBatch.flush(g).text(uiFont, s, rightX - uiFont.width(s), y, color, false);
 	}
 
 	/** Vergroesserter Text (z. B. Ueberschriften). */
-	private void bigText(GuiGraphicsExtractor g, String s, int x, int y, float scale, int color) {
+	void bigText(GuiGraphicsExtractor g, String s, int x, int y, float scale, int color) {
 		g.pose().pushMatrix();
 		g.pose().translate(x, y);
 		g.pose().scale(scale, scale);
@@ -801,9 +812,13 @@ public class TextureStudioScreen extends Screen {
 				case "fx_hit" -> Items.IRON_SWORD;
 				case "fx_pop" -> Items.TOTEM_OF_UNDYING;
 				case "fx_atmo" -> Items.CAMPFIRE;
+				case "fx_outline" -> Items.SPECTRAL_ARROW;
 				case "obsidian" -> Items.OBSIDIAN;
 				case "anchor" -> Items.RESPAWN_ANCHOR;
-				case "armor" -> Items.DIAMOND_CHESTPLATE;
+				case "armor_diamond" -> Items.DIAMOND_CHESTPLATE;
+				case "armor_netherite" -> Items.NETHERITE_CHESTPLATE;
+				case "armor" -> Items.IRON_CHESTPLATE;
+				case "spear" -> Items.DIAMOND_SPEAR;
 				case "tools" -> Items.DIAMOND_SWORD;
 				case "gaps" -> Items.GOLDEN_APPLE;
 				case "totem" -> Items.TOTEM_OF_UNDYING;
@@ -934,13 +949,14 @@ public class TextureStudioScreen extends Screen {
 	private static final String[] I_SHIRT = { "##...##", "###.###", "#######", ".#####.", ".#####.", ".#####.", ".#####." };
 	private static final String[] I_PALETTE = { "..###..", ".#...#.", "#.#...#", "#...#.#", "#.....#", ".#..##.", "..##..." };
 	private static final String[] I_SLIDERS = { "..#....", "#######", "..#....", ".......", "....#..", "#######", "....#.." };
+	private static final String[] I_WAND = { ".....#.", "....###", ".#...#.", "...#...", "..#....", ".#.....", "#......" };
 	private static final String[] NAV_LABELS = { "Sets", "Cosmetics", "Extras", "Loadout", "Favorites", "Themes",
-			"Tweaks", "Settings", "Get Packs" };
+			"Tweaks", "Studio", "Settings", "Get Packs" };
 	private static final String[][] NAV_ICONS = { I_GRID, I_SHIRT, I_EXTRAS, I_LAYERS, I_HEART, I_PALETTE, I_SLIDERS,
-			I_GEAR, I_DOWN };
+			I_WAND, I_GEAR, I_DOWN };
 
 	/** Pixel font for titles (Silkscreen). */
-	private Font titleFont;
+	Font titleFont;
 	/** Tooltip text for the hovered icon-only button (drawn last). */
 	private String navTip;
 	private int railScroll;
@@ -975,18 +991,36 @@ public class TextureStudioScreen extends Screen {
 		gridPanelBottom = bodyBottom;
 	}
 
-	@Override
-	protected void init() {
+	/** Palette and fonts (also used by the Studio tool screens, which draw in the same style). */
+	void prepareStyle() {
 		applyPalette();
 		uiFont = MenuFonts.get(config.font);
 		// with the smooth Nunito the titles use it too (like the rest), otherwise the pixel title font
 		titleFont = MenuFonts.smooth(config.font) ? uiFont : MenuFonts.get("silkscreen");
+	}
+
+	boolean lightMenu() {
+		return menuTheme().light();
+	}
+
+	/** Packs were added (Pack Browser): scan the folder again next time the menu opens. */
+	void packsChanged() {
+		index = null;
+	}
+
+	@Override
+	protected void init() {
+		openedAt = System.nanoTime();
+		prepareStyle();
 		if (index == null) {
 			index = PackIndex.scan(minecraft.getResourcePackDirectory());
 			focusedPack = activeOf(group());
 			// Erster Start: anbieten, die mitgelieferten Packs zu installieren
 			if (!config.packOfferDone && !PackLibrary.entries().isEmpty()) {
 				modal = Modal.OFFER;
+			} else if (!config.tourDone) {
+				modal = Modal.TOUR;
+				tourStep = 0;
 			}
 		}
 		layout();
@@ -994,6 +1028,7 @@ public class TextureStudioScreen extends Screen {
 		String old = search == null ? "" : search.getValue();
 		search = new EditBox(uiFont, 0, py, 40, 12, Component.literal("Search"));
 		search.setBordered(false);
+		search.setTextShadow(false);
 		search.setHint(Component.literal("Search").withColor(FAINT));
 		search.setTextColor(TEXT);
 		search.setValue(old);
@@ -1094,7 +1129,7 @@ public class TextureStudioScreen extends Screen {
 		iconButton(x1, y, s, I_FOLDER, () -> false, false, () -> openFolder(minecraft.getResourcePackDirectory()));
 		iconButton(x2, y, s, I_CLOSE, () -> false, true, this::onClose);
 
-		int titleW = Math.max(Math.round(titleFont.width(TITLE_CAPS) * 1.25f), uiFont.width(subtitle()));
+		int titleW = Math.max(Math.round(titleFont.width(sectionTitle()) * 1.25f), uiFont.width(subtitle()));
 		int titleEnd = mainX + 2 + titleW + 14;
 		searchW = Math.max(60, x1 - 10 - titleEnd);
 		searchX = x1 - 10 - searchW;
@@ -1171,7 +1206,8 @@ public class TextureStudioScreen extends Screen {
 			case 4 -> favoritesOnly;
 			case 5 -> themesTab;
 			case 6 -> modal == Modal.OPTIONS;
-			case 7 -> modal == Modal.SETTINGS;
+			case 7 -> modal == Modal.STUDIO;
+			case 8 -> modal == Modal.SETTINGS;
 			default -> modal == Modal.SELECT || modal == Modal.PROGRESS;
 		};
 	}
@@ -1196,6 +1232,10 @@ public class TextureStudioScreen extends Screen {
 				rebuild();
 			}
 			case 7 -> {
+				modal = Modal.STUDIO;
+				rebuild();
+			}
+			case 8 -> {
 				modal = Modal.SETTINGS;
 				rebuild();
 			}
@@ -1217,10 +1257,10 @@ public class TextureStudioScreen extends Screen {
 		int y = navY + 34;
 		boolean lib = !PackLibrary.entries().isEmpty();
 		for (int i = 0; i < NAV_LABELS.length; i++) {
-			if (i == 8 && !lib) {
+			if (i == 9 && !lib) {
 				break;
 			}
-			if (i == 5 || i == 8) {
+			if (i == 5 || i == 9) {
 				int sy = y + 2;
 				hit(x, sy, 1, 1, () -> {
 				}, (g, t, h) -> {
@@ -1239,14 +1279,14 @@ public class TextureStudioScreen extends Screen {
 	private void paintNav(GuiGraphicsExtractor g, int i, int x, int y, int w, int h, float t, boolean hover) {
 		boolean on = navOn(i);
 		int acc = accent();
+		boolean light = menuTheme().light();
 		if (on) {
-			softGlow(g, x - 8, y - 6, w + 16, h + 12, acc2(), 0x90);
-			hgrad3(g, x, y, w, h, 6, mix(acc, 0xFF000000, 0.05f), acc2(), acc3());
-			outline(g, x, y, w, h, 6, alpha(0xFFFFFF, 0x60));
+			rrect(g, x, y, w, h, 6, alpha(acc, light ? 0x2A : 0x3A));
+			rrect(g, navX, y + 6, 2, h - 12, 1, acc);
 		} else if (t > 0.01f) {
-			rrect(g, x, y, w, h, 6, alpha(acc, (int) (t * 0x38)));
+			rrect(g, x, y, w, h, 6, alpha(HOVER, (int) (t * (light ? 0x10 : 0x12))));
 		}
-		int c = on ? 0xFFFFFFFF : mix(DIM, TEXT, t);
+		int c = on ? (light ? acc : 0xFFE9DDFF) : mix(FAINT, TEXT, t);
 		if (navLabels) {
 			int top = y + Math.max(3, (h - 26) / 2);
 			glyph2(g, NAV_ICONS[i], x + (w - 14) / 2, top, 2, c);
@@ -1260,7 +1300,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Pixel icon drawn k times bigger (one rectangle per run, so it stays batched). */
-	private static void glyph2(GuiGraphicsExtractor g, String[] rows, int x, int y, int k, int color) {
+	static void glyph2(GuiGraphicsExtractor g, String[] rows, int x, int y, int k, int color) {
 		for (int r = 0; r < rows.length; r++) {
 			String s = rows[r];
 			int c = 0;
@@ -1299,7 +1339,7 @@ public class TextureStudioScreen extends Screen {
 			return;
 		}
 		int n = list.size();
-		int minW = railCompact ? 26 : 46;
+		int minW = railCompact ? 26 : 80;
 		int avail = x1 - x0;
 		int chipW;
 		int start;
@@ -1308,8 +1348,8 @@ public class TextureStudioScreen extends Screen {
 		if (!arrows) {
 			railScroll = 0;
 			railVisible = n;
-			chipW = Math.min(railCompact ? 34 : 74, avail / n);
-			start = x0 + (avail - n * chipW) / 2;
+			chipW = Math.min(railCompact ? 34 : 104, avail / n);
+			start = railCompact ? x0 + (avail - n * chipW) / 2 : x0 + 2;
 		} else {
 			int inner = avail - 2 * (aw + 3);
 			railVisible = Math.max(1, inner / minW);
@@ -1368,27 +1408,24 @@ public class TextureStudioScreen extends Screen {
 	private void paintChip(GuiGraphicsExtractor g, Group gr, int x, int y, int w, int h, float t, boolean hover) {
 		boolean sel = gr.id().equals(groupId);
 		int acc = accent();
+		boolean light = menuTheme().light();
 		if (sel) {
-			softGlow(g, x - 8, y - 6, w + 16, h + 12, acc, 0x80);
-			vgrad(g, x, y, w, h, 6, 6, alpha(mix(acc, 0xFFFFFFFF, 0.08f), 0xA8), alpha(mix(acc, 0xFF000000, 0.35f), 0x80));
-			outline(g, x, y, w, h, 6, alpha(mix(acc, 0xFFFFFFFF, 0.55f), 0xE0));
-			hgrad(g, x + w / 4, y + h - 2, w / 2, 2, 1, mix(acc, 0xFFFFFFFF, 0.4f), mix(acc2(), 0xFFFFFFFF, 0.4f));
+			rrect(g, x, y, w, h, 6, light ? mix(CARD, acc, 0.10f) : CARD_HI);
+			outline(g, x, y, w, h, 6, alpha(mix(BORDER_HI, acc, 0.35f), 0xE0));
 		} else if (t > 0.01f) {
-			rrect(g, x, y, w, h, 6, alpha(acc, (int) (t * 0x30)));
+			rrect(g, x, y, w, h, 6, alpha(HOVER, (int) (t * (light ? 0x10 : 0x0E))));
 		}
-		int lift = Math.round(t);
 		if (railCompact) {
-			icon(g, gr, x + (w - 16) / 2, y + (h - 16) / 2 - lift, 16);
+			icon(g, gr, x + (w - 16) / 2, y + (h - 16) / 2, 16);
 			if (hover) {
 				navTip = gr.label();
 			}
 		} else {
-			icon(g, gr, x + (w - 16) / 2, y + 2 - lift, 16);
-			ctextShadow(g, fit(gr.label(), w - 4), x + w / 2, y + h - 10, sel ? 0xFFFFFFFF : mix(DIM, TEXT, t));
+			icon(g, gr, x + 6, y + (h - 16) / 2, 16);
+			text(g, fit(gr.label(), w - 32), x + 27, y + (h - 8) / 2, sel ? TEXT : mix(DIM, TEXT, t));
 		}
 		if (isOn(gr)) {
-			softGlow(g, x + w - 10, y, 8, 8, GREEN, 0x90);
-			dot(g, x + w - 8, y + 2, 4, GREEN);
+			dot(g, x + w - 7, y + 3, 4, GREEN);
 		}
 	}
 
@@ -1557,33 +1594,23 @@ public class TextureStudioScreen extends Screen {
 		int acc = accent();
 		boolean light = menuTheme().light();
 		int op = opacity();
-		softGlow(g, x - 4, y + 2, w + 8, h + 8, 0xFF000000, light ? 0x18 : 0x60);
-		if (active || focused) {
-			softGlow(g, x - 9, y - 9, w + 18, h + 18, acc, active ? 0xB0 : 0x60);
-		} else if (t > 0.01f) {
-			softGlow(g, x - 9, y - 9, w + 18, h + 18, acc, (int) (t * 0x70));
+		if (active) {
+			softGlow(g, x - 6, y - 6, w + 12, h + 12, acc, 0x38);
 		}
-		vgrad(g, x, y, w, h, 7, 7, alpha(mix(CARD_HI, acc, active ? 0.32f : 0.14f + t * 0.12f), 0xE0 * op / 100),
-				alpha(mix(CARD, 0xFF000000, light ? 0f : 0.2f), 0xEC * op / 100));
-		// thumbnail well with a soft light in the pack's accent
-		int areaH = h - 18;
-		int wx = x + 4;
-		int wy = y + 4;
-		int ww = w - 8;
-		int wh = areaH - 2;
-		if (light) {
-			vgrad(g, wx, wy, ww, wh, 5, 5, mix(PLATE_TOP, acc, 0.06f), PLATE_BOTTOM);
+		int base = mix(CARD, CARD_HI, t);
+		if (active) {
+			vgrad(g, x, y, w, h, 7, 7, alpha(mix(base, acc, light ? 0.12f : 0.22f), 0xF0 * op / 100),
+					alpha(base, 0xF0 * op / 100));
 		} else {
-			rrect(g, wx, wy, ww, wh, 5, alpha(mix(0xFF05020F, acc, 0.10f), 0xD0));
+			rrect(g, x, y, w, h, 7, alpha(base, 0xF0 * op / 100));
 		}
-		softGlow(g, wx + ww / 2 - ww * 2 / 5, wy + wh / 2 - wh * 2 / 5, ww * 4 / 5, wh * 4 / 5, acc,
-				active ? 0x90 : 0x40 + (int) (t * 0x40));
-		// glowing bar along the bottom edge
-		hgrad(g, x + 10, y + h - 2, w - 20, 1, 0, alpha(acc, active ? 0xFF : 0x70 + (int) (t * 0x80)),
-				alpha(acc2(), active ? 0xFF : 0x70 + (int) (t * 0x80)));
-		int border = active ? mix(acc, 0xFFFFFFFF, 0.6f)
-				: focused ? alpha(mix(acc, 0xFFFFFFFF, 0.3f), 0xD0)
-						: alpha(mix(acc, 0xFFFFFFFF, 0.3f), 0x40 + (int) (t * 0x90));
+		// a faint light behind the picture
+		int areaH = h - 18;
+		softGlow(g, x + w / 2 - w * 3 / 10, y + areaH / 2 - areaH * 3 / 10, w * 3 / 5, areaH * 3 / 5, acc,
+				active ? 0x50 : 0x18 + (int) (t * 0x20));
+		int border = active ? alpha(mix(acc, 0xFFFFFFFF, 0.25f), 0xE8)
+				: focused ? alpha(mix(BORDER_HI, acc, 0.5f), 0xD0)
+						: alpha(mix(LINE, BORDER_HI, t), 0xE0);
 		outline(g, x, y, w, h, 7, border);
 		return y;
 	}
@@ -1653,6 +1680,7 @@ public class TextureStudioScreen extends Screen {
 			case HIT -> drawHitPreview(g, it, x, y, w, h);
 			case POP -> drawPopPreview(g, it, x, y, w, h);
 			case ATMO -> drawAtmoPreview(g, it, x, y, w, h);
+			case OUTLINE -> drawOutlinePreview(g, it, x, y, w, h);
 		}
 	}
 
@@ -1708,6 +1736,35 @@ public class TextureStudioScreen extends Screen {
 		}
 	}
 
+	/** Player outline card: a dark player figure with a glowing rim, half hidden behind a block. */
+	private void drawOutlinePreview(GuiGraphicsExtractor g, Cosmetics.Item it, int x, int y, int w, int h) {
+		int c = PlayerOutline.color(it.id(), System.currentTimeMillis());
+		float sc = Math.max(0.5f, Math.min(w / 22f, h / 38f));
+		softGlow(g, x + w / 2 - Math.round(14 * sc), y + 2, Math.round(28 * sc), h - 4, 0xFF000000 | c, 0x28);
+		g.pose().pushMatrix();
+		g.pose().translate(x + (w - 16 * sc) / 2f, y + (h - 32 * sc) / 2f);
+		g.pose().scale(sc, sc);
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				if (dx != 0 || dy != 0) {
+					g.pose().pushMatrix();
+					g.pose().translate(dx * 0.9f, dy * 0.9f);
+					drawPopFigure(g, c, 0xFF, false);
+					g.pose().popMatrix();
+				}
+			}
+		}
+		drawPopFigure(g, 0x2A2A36, 0xFF, false);
+		g.pose().popMatrix();
+		// a stone block in front of the legs: the line stops there
+		int bs = Math.round(14 * sc);
+		int bx = x + w / 2 + Math.round(1 * sc);
+		int by = y + (h + Math.round(32 * sc)) / 2 - bs + Math.round(2 * sc);
+		FillBatch.fill(g, bx, by, bx + bs, by + bs, 0xFF6B6B73);
+		FillBatch.fill(g, bx, by, bx + bs, by + Math.max(1, bs / 8), 0xFF8A8A93);
+		FillBatch.fill(g, bx + bs / 3, by + bs / 2, bx + bs / 3 + Math.max(1, bs / 6), by + bs / 2 + Math.max(1, bs / 6), 0xFF55555C);
+	}
+
 	/** Pop chams card: a glowing player silhouette that rises and fades, again and again. */
 	private void drawPopPreview(GuiGraphicsExtractor g, Cosmetics.Item it, int x, int y, int w, int h) {
 		long ms = System.currentTimeMillis();
@@ -1725,6 +1782,10 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	private static void drawPopFigure(GuiGraphicsExtractor g, int c, int a) {
+		drawPopFigure(g, c, a, true);
+	}
+
+	private static void drawPopFigure(GuiGraphicsExtractor g, int c, int a, boolean shine) {
 		int u = 1;
 		int fx = 0;
 		int fy = 0;
@@ -1736,7 +1797,9 @@ public class TextureStudioScreen extends Screen {
 		FillBatch.fill(g, fx + 4 * u, fy + 20 * u, fx + 8 * u, fy + 32 * u, col); // legs
 		FillBatch.fill(g, fx + 8 * u, fy + 20 * u, fx + 12 * u, fy + 32 * u, col);
 		int edge = (Math.max(0x30, Math.min(0xFF, a + 0x30)) << 24) | 0xFFFFFF;
-		FillBatch.fill(g, fx + 4 * u, fy, fx + 12 * u, fy + Math.max(1, u / 2), edge);
+		if (shine) {
+			FillBatch.fill(g, fx + 4 * u, fy, fx + 12 * u, fy + Math.max(1, u / 2), edge);
+		}
 	}
 
 	/** Spotify card: the real overlay, scaled to fit (with the song that is playing, or a sample). */
@@ -1814,9 +1877,17 @@ public class TextureStudioScreen extends Screen {
 		}
 	}
 
-	private static final ItemStack[] ARMOR_DEMO = { new ItemStack(Items.DIAMOND_HELMET),
+	private static ItemStack[] armorDemo;
+
+	/** Created on first use: item stacks cannot be made before the game bound the item components. */
+	private static ItemStack[] armorDemo() {
+		if (armorDemo == null) {
+			armorDemo = new ItemStack[] { new ItemStack(Items.DIAMOND_HELMET),
 			new ItemStack(Items.NETHERITE_CHESTPLATE), new ItemStack(Items.DIAMOND_LEGGINGS),
 			new ItemStack(Items.DIAMOND_BOOTS) };
+		}
+		return armorDemo;
+	}
 	private static final float[] ARMOR_DEMO_F = { 0.94f, 0.71f, 0.42f, 0.12f };
 
 	/** Armor HUD card: four armor pieces with sample durability, drawn like the real HUD style. */
@@ -1838,7 +1909,7 @@ public class TextureStudioScreen extends Screen {
 			g.pose().pushMatrix();
 			g.pose().translate(px, ry);
 			g.pose().scale(sc, sc);
-			FillBatch.flush(g).fakeItem(ARMOR_DEMO[i], 0, 0);
+			FillBatch.flush(g).fakeItem(armorDemo()[i], 0, 0);
 			g.pose().popMatrix();
 			int tx = px + Math.round(19 * sc);
 			// text shrinks with the rows so small cards do not overlap
@@ -2121,6 +2192,8 @@ public class TextureStudioScreen extends Screen {
 			sub = "Ghost when an enemy pops a totem";
 		} else if (kind == Cosmetics.Kind.ATMO) {
 			sub = "Coloured fog, mist and smoke around you";
+		} else if (kind == Cosmetics.Kind.OUTLINE) {
+			sub = "Line around other players, not through blocks";
 		} else {
 			sub = minecraft.player == null ? "Preview needs a world" : "Only visible to you";
 		}
@@ -2586,7 +2659,7 @@ public class TextureStudioScreen extends Screen {
 		}
 	}
 
-	/** Back to the default look: Nebula theme, amethyst accent, 95% opacity, Minecraft font. */
+	/** Back to the default look: white theme, the quiet accent of the new menu, full opacity, Nunito. */
 	private void resetLook() {
 		config.accent = "amethyst";
 		config.opacity = 95;
@@ -2905,12 +2978,8 @@ public class TextureStudioScreen extends Screen {
 	private void paintSlot(GuiGraphicsExtractor g, Group gr, int x, int y, int w, int h, float t) {
 		boolean sel = gr.id().equals(groupId);
 		int acc = accent();
-		if (sel || t > 0.01f) {
-			softGlow(g, x - 6, y - 5, w + 12, h + 10, acc, sel ? 0x60 : (int) (t * 0x50));
-		}
-		rrect(g, x, y, w, h, 6, alpha(mix(CARD, sel ? mix(CARD, acc, 0.3f) : CARD_HI, 0.3f + t * 0.5f), 0xC8));
-		outline(g, x, y, w, h, 6, alpha(mix(acc, 0xFFFFFFFF, 0.3f), sel ? 0xC0 : 0x40 + (int) (t * 0x70)));
-		softGlow(g, x + 1, y + (h - 20) / 2, 20, 20, acc, 0x50);
+		rrect(g, x, y, w, h, 6, alpha(sel ? mix(CARD_HI, acc, 0.15f) : mix(CARD, CARD_HI, t), 0xE8));
+		outline(g, x, y, w, h, 6, sel ? alpha(mix(acc, 0xFFFFFFFF, 0.25f), 0xC0) : alpha(mix(LINE, BORDER_HI, t), 0xE0));
 		icon(g, gr, x + 3, y + (h - 16) / 2, 16);
 		int tx = x + 23;
 		int tw = w - 27;
@@ -2933,7 +3002,7 @@ public class TextureStudioScreen extends Screen {
 	private boolean glowFailed;
 
 	/** Second accent colour: the accent's hue moved towards pink (grey accents stay grey). */
-	private int acc2() {
+	int acc2() {
 		Theme th = theme();
 		if (th != null) {
 			return th.c2();
@@ -2971,7 +3040,7 @@ public class TextureStudioScreen extends Screen {
 				}
 			}
 			glowId = Identifier.fromNamespaceAndPath(TextureStudioClient.MOD_ID, "ui/glow");
-			minecraft.getTextureManager().register(glowId,
+			net.minecraft.client.Minecraft.getInstance().getTextureManager().register(glowId,
 					new net.minecraft.client.renderer.texture.DynamicTexture(() -> "pin visuals glow", img));
 		} catch (RuntimeException e) {
 			glowFailed = true;
@@ -2981,7 +3050,7 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Soft round light (or shadow, with a dark colour) stretched over the rectangle. a = strength 0..255. */
-	private void softGlow(GuiGraphicsExtractor g, int x, int y, int w, int h, int color, int a) {
+	void softGlow(GuiGraphicsExtractor g, int x, int y, int w, int h, int color, int a) {
 		if (w <= 0 || h <= 0 || a <= 0) {
 			return;
 		}
@@ -3088,18 +3157,14 @@ public class TextureStudioScreen extends Screen {
 			hgrad(g, x + 2, y + 2, Math.max(1, w / 3), Math.max(1, h / 5), r, alpha(0xFFFFFF, 0x14), alpha(0xFFFFFF, 0));
 			return;
 		}
-		int a1 = (light ? 0xD8 : 0x9C) * op / 100;
-		int a2 = (light ? 0xF0 : 0xC4) * op / 100;
-		softGlow(g, x - 6, y - 2, w + 12, h + 12, 0xFF000000, light ? 0x18 : 0x70);
-		vgrad(g, x, y, w, h, r, r, alpha(mix(PANEL, acc, light ? 0.06f : 0.20f), a1), alpha(PANEL, a2));
-		outline(g, x, y, w, h, r, alpha(mix(acc, 0xFFFFFFFF, 0.35f), light ? 0x50 : 0x58));
-		int half = (w - 2 * r) / 2;
-		hgrad(g, x + r, y + 1, half, 1, 0, alpha(0xFFFFFF, 0), alpha(0xFFFFFF, light ? 0x60 : 0x2C));
-		hgrad(g, x + r + half, y + 1, half, 1, 0, alpha(0xFFFFFF, light ? 0x60 : 0x2C), alpha(0xFFFFFF, 0));
+		int a1 = (light ? 0xD8 : 0xC8) * op / 100;
+		int a2 = (light ? 0xF0 : 0xD8) * op / 100;
+		vgrad(g, x, y, w, h, r, r, alpha(mix(PANEL, acc, light ? 0.04f : 0.03f), a1), alpha(PANEL, a2));
+		outline(g, x, y, w, h, r, alpha(light ? BORDER : mix(LINE, BORDER, 0.5f), 0xE0));
 	}
 
 	/** Text in the pixel title font, optionally scaled. */
-	private void titleText(GuiGraphicsExtractor g, String s, int x, int y, float scale, int color) {
+	void titleText(GuiGraphicsExtractor g, String s, int x, int y, float scale, int color) {
 		g.pose().pushMatrix();
 		g.pose().translate(x, y);
 		g.pose().scale(scale, scale);
@@ -3180,6 +3245,51 @@ public class TextureStudioScreen extends Screen {
 		return all.size() + " ready-made texture packs (" + PackLibrary.mb(PackLibrary.totalSize(all))
 				+ ") come with Pin Visuals. Copy them into your resourcepacks folder?"
 				+ " Then you can pick and mix them here as styles.";
+	}
+
+	private void openTool(int i) {
+		modal = Modal.NONE;
+		rebuild();
+		Nav.open(switch (i) {
+			case 0 -> new CrosshairScreen(this, this);
+			case 1 -> new BlockOutlineScreen(this, this);
+			case 2 -> new ViewmodelScreen(this, this);
+			case 3 -> new PixelEditorScreen(this, this, false);
+			case 4 -> new PixelEditorScreen(this, this, true);
+			case 5 -> new PackBrowserScreen(this, this);
+			case 6 -> new SkyDesignerScreen(this, this);
+			default -> new PinMenuScreen(this);
+		});
+	}
+
+	/** Tour steps: title, text, highlighted nav item (-1 = none). */
+	private static final String[][] TOUR = {
+			{ "Welcome!", "This is Pin Visuals. A quick look at everything - it takes half a minute.", "-1" },
+			{ "Sets", "Pick a style for crystals, totems, armor, the sky and more. One click applies it to your game.",
+					"0" },
+			{ "Cosmetics", "Capes, hats and wings. Only you see them.", "1" },
+			{ "Extras", "Kill effects, Spotify lyrics, hit colours, pop chams, atmosphere and player outlines.", "2" },
+			{ "Themes", "Change the colours of this menu.", "5" },
+			{ "Tweaks", "Small game tweaks: low fire, low shield, no totem pop and an FPS boost.", "6" },
+			{ "Studio", "Crosshair, block outline, viewmodel, pixel editor, cape designer and a pack browser.", "7" },
+			{ "Have fun!", "Open this menu any time with the O key. You can start the tour again in Settings.",
+					"-1" } };
+
+	private int[] tourTarget() {
+		int nav = Integer.parseInt(TOUR[tourStep][2]);
+		if (nav < 0) {
+			return null;
+		}
+		int itemH = navLabels ? Math.max(28, Math.min(34, (navH - 34 - 20) / NAV_LABELS.length)) : 20;
+		int y = navY + 34 + nav * itemH + (nav >= 5 ? 6 : 0);
+		return new int[] { navX + 3, y, navW - 6, itemH - 2 };
+	}
+
+	private void finishTour() {
+		config.tourDone = true;
+		config.save();
+		modal = Modal.NONE;
+		rebuild();
 	}
 
 	/** Knopf im Dialog; primary = gefuellt in Akzentfarbe. */
@@ -3379,8 +3489,15 @@ public class TextureStudioScreen extends Screen {
 				});
 			}
 			case SETTINGS -> {
-				layoutModal(300, 170);
+				layoutModal(300, 236);
 				int rowY = mY + 36;
+				optionRow(rowY + 96, "Pin Visuals menu", "White title and loading screen (instead of vanilla)",
+						() -> config.pinMenu, v -> config.pinMenu = v);
+				settingsRow(rowY + 128, I_GRID, "Show the tour again", "A short look at everything", () -> {
+					tourStep = 0;
+					modal = Modal.TOUR;
+					rebuild();
+				});
 				settingsRow(rowY, I_RESET, "Reset all styles", "Every collection back to vanilla", this::resetAll);
 				settingsRow(rowY + 32, I_FOLDER, "Open pack folder", "Your resourcepacks folder",
 						() -> openFolder(minecraft.getResourcePackDirectory()));
@@ -3391,6 +3508,78 @@ public class TextureStudioScreen extends Screen {
 					modal = Modal.NONE;
 					rebuild();
 				});
+			}
+			case STUDIO -> {
+				layoutModal(460, 196);
+				String[][] tools = { { "Crosshair", "Your own crosshair" }, { "Block Outline", "Colour, size, glow" },
+						{ "Viewmodel", "Item in your hand" }, { "Pixel Editor", "Paint over textures" },
+						{ "Cape Designer", "A cape only you see" }, { "Pack Browser", "Packs from Modrinth" },
+						{ "Sky Designer", "Make your own sky" }, { "All Settings", "Zoom, knife, presets ..." } };
+				Item[] icons = { Items.TARGET, Items.GLASS, Items.DIAMOND_SWORD, Items.PAINTING, Items.ELYTRA,
+						Items.COMPASS, Items.SUNFLOWER, Items.COMPARATOR };
+				int cols = 4;
+				int gap = 6;
+				int tw = (mW - 24 - gap * (cols - 1)) / cols;
+				int th = 64;
+				for (int i = 0; i < tools.length; i++) {
+					final int idx = i;
+					int tx = mX + 12 + (i % cols) * (tw + gap);
+					int ty = mY + 36 + (i / cols) * (th + gap);
+					ItemStack icon = new ItemStack(icons[i]);
+					hit(tx, ty, tw, th, () -> openTool(idx), (g, t, hov) -> {
+						int acc = accent();
+						if (t > 0.01f) {
+							softGlow(g, tx - 6, ty - 6, tw + 12, th + 12, acc, (int) (0x60 * t));
+						}
+						vgrad(g, tx, ty, tw, th, 6, 6, mix(CARD, acc, 0.10f + 0.12f * t), CARD);
+						outline(g, tx, ty, tw, th, 6, mix(BORDER, acc, t));
+						g.pose().pushMatrix();
+						g.pose().translate(tx + tw / 2f - 10, ty + 8);
+						g.pose().scale(1.25f, 1.25f);
+						FillBatch.flush(g).fakeItem(icon, 0, 0);
+						g.pose().popMatrix();
+						ctext(g, fit(tools[idx][0], tw - 6), tx + tw / 2, ty + 34, TEXT);
+						ctext(g, fit(tools[idx][1], tw - 6), tx + tw / 2, ty + 46, DIM);
+					});
+				}
+				int w = 60;
+				modalButton(mX + mW - 12 - w, mY + mH - 28, w, "Close", true, true, () -> {
+					modal = Modal.NONE;
+					rebuild();
+				});
+			}
+			case TOUR -> {
+				layoutModal(250, 120);
+				int[] r = tourTarget();
+				if (r != null) {
+					mX = Math.min(width - mW - 8, r[0] + r[2] + 14);
+					mY = Math.max(8, Math.min(height - mH - 8, r[1] + r[3] / 2 - mH / 2));
+				}
+				int by = mY + mH - 28;
+				boolean last = tourStep == TOUR.length - 1;
+				String next = last ? "Let's go" : "Next";
+				int wn = uiFont.width(next) + 22;
+				modalButton(mX + mW - 12 - wn, by, wn, next, true, true, () -> {
+					if (last) {
+						finishTour();
+					} else {
+						tourStep++;
+						rebuild();
+					}
+				});
+				if (tourStep > 0) {
+					int wb = uiFont.width("Back") + 18;
+					modalButton(mX + mW - 12 - wn - 5 - wb, by, wb, "Back", false, true, () -> {
+						tourStep--;
+						rebuild();
+					});
+				}
+				if (!last) {
+					int ws = uiFont.width("Skip") + 6;
+					int sx = mX + 12;
+					hit(sx, by + 4, ws, 10, this::finishTour,
+							(g, t, h) -> text(g, "Skip", sx, by + 5, mix(FAINT, accent(), t)));
+				}
 			}
 			case DONE -> {
 				layoutModal(300, 88);
@@ -3454,6 +3643,24 @@ public class TextureStudioScreen extends Screen {
 			case OPTIONS -> {
 				titleText(g, "TWEAKS", x, y, 1.25f, TEXT);
 				FillBatch.fill(g, mX + 10, mY + 27, mX + mW - 10, mY + 28, LINE);
+			}
+			case STUDIO -> {
+				titleText(g, "STUDIO", x, y, 1.25f, TEXT);
+				FillBatch.fill(g, mX + 10, mY + 27, mX + mW - 10, mY + 28, LINE);
+			}
+			case TOUR -> {
+				String[] st = TOUR[tourStep];
+				String count = (tourStep + 1) + " / " + TOUR.length;
+				text(g, count, mX + mW - 12 - uiFont.width(count), y + 2, FAINT);
+				titleText(g, st[0], x, y, 1.25f, TEXT);
+				int ly = y + 20;
+				for (String l : wrap(st[1], mW - 24)) {
+					text(g, l, x, ly, SOFT);
+					ly += 11;
+				}
+				for (int i = 0; i < TOUR.length; i++) {
+					rrect(g, mX + 12 + i * 9, mY + mH - 36, 5, 3, 1, i == tourStep ? accent() : TRACK);
+				}
 			}
 			case SETTINGS -> {
 				titleText(g, "SETTINGS", x, y, 1.25f, TEXT);
@@ -3732,7 +3939,9 @@ public class TextureStudioScreen extends Screen {
 		boolean done = switch (gr.id()) {
 			case "crystal" -> drawCrystal(g, s, x, y, w, h);
 			case "shield" -> drawShield(g, s, x, y, w, h);
-			case "armor" -> drawArmor(g, s, x, y, w, h);
+			case "armor_diamond" -> drawArmor(g, s, x, y, w, h, "diamond");
+			case "armor_netherite" -> drawArmor(g, s, x, y, w, h, "netherite");
+			case "armor" -> drawArmor(g, s, x, y, w, h, "iron", "gold", "golden", "chainmail", "leather", "turtle_scute");
 			case "sky" -> drawSky(g, s, x, y, w, h);
 			case "trident" -> drawSingle(g, s, x, y, w, h, "item/trident", "entity/trident/trident", "entity/trident");
 			case "windcharge" -> drawPair(g, s, x, y, w, h, first(s, "item/wind_charge"),
@@ -3868,13 +4077,14 @@ public class TextureStudioScreen extends Screen {
 	}
 
 	/** Ruestung: Items, wenn vorhanden; sonst als Figur aus den Ruestungs-Texturen (Kopf, Brust, Arme, Beine). */
-	private boolean drawArmor(GuiGraphicsExtractor g, Src s, int x, int y, int w, int h) {
-		if (first(s, "item/diamond_chestplate", "item/diamond_helmet", "item/netherite_chestplate",
-				"item/iron_chestplate") != null) {
-			return false; // Standard-Darstellung mit Items
+	private boolean drawArmor(GuiGraphicsExtractor g, Src s, int x, int y, int w, int h, String... mats) {
+		for (String mat : mats) {
+			if (first(s, "item/" + mat + "_chestplate", "item/" + mat + "_helmet") != null) {
+				return false; // Standard-Darstellung mit Items
+			}
 		}
 		String body = null;
-		for (String mat : new String[] { "diamond", "netherite", "iron", "gold", "chainmail", "leather" }) {
+		for (String mat : mats) {
 			body = first(s, "entity/equipment/humanoid/" + mat, "models/armor/" + mat + "_layer_1",
 					"models/armor/" + (mat.equals("gold") ? "golden" : mat) + "_layer_1");
 			if (body != null) {
@@ -3883,7 +4093,8 @@ public class TextureStudioScreen extends Screen {
 		}
 		if (body == null) {
 			for (String t : s.all()) {
-				if (t.contains("entity/equipment/humanoid/") || t.matches(".*models/armor/[a-z_]+_layer_1\\.png")) {
+				if ((t.contains("entity/equipment/humanoid/") || t.matches(".*models/armor/[a-z_]+_layer_1\\.png"))
+						&& java.util.Arrays.asList(mats).contains(Group.armorMaterial(Group.rel(t)))) {
 					body = t;
 					break;
 				}
@@ -3981,7 +4192,7 @@ public class TextureStudioScreen extends Screen {
 
 		// Regler ziehen
 		if (dragging != 0) {
-			if (minecraft.mouseHandler.isLeftPressed()) {
+			if (leftDown) {
 				if (dragging == 1) {
 					applyHue(mx);
 				} else if (dragging == 2) {
@@ -4022,6 +4233,14 @@ public class TextureStudioScreen extends Screen {
 			return;
 		}
 
+		// opening: the window glides up a little and fades in (about a quarter second)
+		float openT = Math.min(1f, (System.nanoTime() - openedAt) / 280_000_000f);
+		float openE = 1f - (1f - openT) * (1f - openT) * (1f - openT);
+		boolean opening = openE < 0.999f;
+		if (opening) {
+			g.pose().pushMatrix();
+			g.pose().translate(0, Math.round((1f - openE) * 16));
+		}
 		FillBatch.begin();
 		try {
 			drawFrame(g);
@@ -4039,6 +4258,15 @@ public class TextureStudioScreen extends Screen {
 			drawTip(g);
 			if (modal != Modal.NONE) {
 				drawModalFrame(g);
+				if (modal == Modal.TOUR) {
+					int[] r = tourTarget();
+					if (r != null) {
+						float pulse = 0.5f + 0.5f * (float) Math.sin(System.currentTimeMillis() / 260.0);
+						softGlow(g, r[0] - 10, r[1] - 10, r[2] + 20, r[3] + 20, accent(), 0x90 + (int) (0x50 * pulse));
+						paintNav(g, Integer.parseInt(TOUR[tourStep][2]), r[0], r[1], r[2], r[3], 1f, false);
+						outline(g, r[0] - 2, r[1] - 2, r[2] + 4, r[3] + 4, 7, mix(accent(), 0xFFFFFFFF, 0.5f));
+					}
+				}
 				paintHits(g, modalHits);
 				drawModalExtras(g);
 			}
@@ -4047,6 +4275,10 @@ public class TextureStudioScreen extends Screen {
 		}
 		if (modal == Modal.NONE) {
 			search.extractRenderState(g, mouseX, mouseY, delta);
+		}
+		if (opening) {
+			FillBatch.flush(g).fill(px - 2, py - 2, px + pw + 2, py + ph + 2, alpha(WIN, Math.round(255 * (1f - openE))));
+			g.pose().popMatrix();
 		}
 	}
 
@@ -4067,7 +4299,7 @@ public class TextureStudioScreen extends Screen {
 		boolean glassy = theme() != null && theme().glassy();
 		FillBatch.fill(g, 0, 0, width, height, glassy ? 0x40000000 : DIMMER);
 		softGlow(g, px - 30, py - 20, pw + 60, ph + 50, 0xFF000000, glassy ? 0x60 : 0xC0);
-		softGlow(g, px - 40, py - 30, pw + 80, ph + 60, acc, light ? 0x10 : 0x28);
+		softGlow(g, px - 40, py - 30, pw + 80, ph + 60, acc, light ? 0x08 : 0x10);
 		Theme glassTheme = theme();
 		if (glassTheme != null && glassTheme.glassy()) {
 			// glass theme: the world shows through a lightly tinted, colour-washed pane
@@ -4077,18 +4309,12 @@ public class TextureStudioScreen extends Screen {
 		} else if (light) {
 			vgrad(g, px, py, pw, ph, 8, 8, win(mix(WIN, acc, 0.05f)), win(WIN));
 		} else {
-			Identifier neb = nebulaTexture();
-			if (neb != null) {
-				FillBatch.flush(g).blit(RenderPipelines.GUI_TEXTURED, neb, px, py, 0f, 0f, pw, ph, NEB_W, NEB_H, NEB_W,
-						NEB_H, alpha(0xFFFFFF, opacity() * 255 / 100));
-			} else {
-				vgrad(g, px, py, pw, ph, 0, 0, win(mix(WIN, acc, 0.08f)), win(WIN));
-			}
-			stars(g);
+			// calm, flat dark window (colour only where something is chosen)
+			vgrad(g, px, py, pw, ph, 0, 0, win(mix(WIN, acc, 0.035f)), win(WIN));
 		}
-		outline(g, px, py, pw, ph, 0, alpha(mix(WIN_BORDER, acc, 0.6f), 0xE0));
-		hgrad(g, px + pw / 5, py, pw * 3 / 10, 1, 0, alpha(acc, 0x00), alpha(mix(acc, 0xFFFFFFFF, 0.5f), 0xD0));
-		hgrad(g, px + pw / 2, py, pw * 3 / 10, 1, 0, alpha(mix(acc, 0xFFFFFFFF, 0.5f), 0xD0), alpha(acc, 0x00));
+		outline(g, px, py, pw, ph, 0, alpha(mix(BORDER, acc, 0.3f), 0xE0));
+		hgrad(g, px + pw / 5, py, pw * 3 / 10, 1, 0, alpha(acc, 0x00), alpha(mix(acc, 0xFFFFFFFF, 0.45f), 0xB0));
+		hgrad(g, px + pw / 2, py, pw * 3 / 10, 1, 0, alpha(mix(acc, 0xFFFFFFFF, 0.45f), 0xB0), alpha(acc, 0x00));
 
 		glass(g, navX, navY, navW, navH, 8);
 		glass(g, mainX, railY, mainW, railH, 8);
@@ -4104,7 +4330,7 @@ public class TextureStudioScreen extends Screen {
 		int s = Math.min(24, navW - 8);
 		int lx = navX + (navW - s) / 2;
 		int ly = navY + 5;
-		softGlow(g, lx - 10, ly - 10, s + 20, s + 20, acc2(), 0xA0);
+		softGlow(g, lx - 8, ly - 8, s + 16, s + 16, acc2(), 0x40);
 		hgrad3(g, lx, ly, s, s, 6, acc, acc2(), acc3());
 		FillBatch.flush(g).blit(RenderPipelines.GUI_TEXTURED, LOGO, lx + 2, ly + 2, 0, 0, s - 4, s - 4, 64, 64, 64, 64);
 	}
@@ -4113,9 +4339,22 @@ public class TextureStudioScreen extends Screen {
 		int acc = accent();
 		int x = mainX + 2;
 		int y = headY + 1;
-		softGlow(g, x - 10, y - 8, Math.round(titleFont.width(TITLE_CAPS) * 1.25f) + 20, 26, acc, 0x50);
-		titleText(g, TITLE_CAPS, x, y, 1.25f, menuTheme().light() ? TEXT : 0xFFFFFFFF);
+		titleText(g, sectionTitle(), x, y, 1.25f, TEXT);
 		text(g, subtitle(), x, y + 14, DIM);
+	}
+
+	/** Name of the open part of the menu (Sets, Cosmetics, ...), shown as the window title. */
+	private String sectionTitle() {
+		if (themesTab) {
+			return "Themes";
+		}
+		String s = switch (listMode) {
+			case 1 -> "Extras";
+			case 2 -> "Loadout";
+			case 3 -> "Cosmetics";
+			default -> "Sets";
+		};
+		return favoritesOnly ? s + " · Favorites" : s;
 	}
 
 	/** Title and count above the grid, "Using ..." next to the pager. */
@@ -4220,8 +4459,8 @@ public class TextureStudioScreen extends Screen {
 		int ccx = x + w / 2;
 		int ccy = y + h / 2;
 		int s = Math.min(w, h);
-		softGlow(g, ccx - s * 3 / 4, ccy - s * 3 / 4, s * 3 / 2, s * 3 / 2, acc, 0x70);
-		softGlow(g, ccx - s / 3, ccy - s / 3, s * 2 / 3, s * 2 / 3, acc2(), 0x50);
+		softGlow(g, ccx - s * 3 / 4, ccy - s * 3 / 4, s * 3 / 2, s * 3 / 2, acc, 0x48);
+		softGlow(g, ccx - s / 3, ccy - s / 3, s * 2 / 3, s * 2 / 3, acc2(), 0x30);
 		long ms = System.currentTimeMillis();
 		float rot = (float) (ms % 24000L / 24000.0 * Math.PI * 2);
 		int rx = Math.round(s * 0.44f);
@@ -4356,6 +4595,9 @@ public class TextureStudioScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+			leftDown = true;
+		}
 		// right click = zoom; the button numbers differ between versions (26.3: left 1, right 3), so use the constant
 		if (!zoom && modal == Modal.NONE && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) {
 			for (CardRect c : cards) {
@@ -4368,6 +4610,14 @@ public class TextureStudioScreen extends Screen {
 			}
 		}
 		return super.mouseClicked(event, doubleClick);
+	}
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent event) {
+		if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+			leftDown = false;
+		}
+		return super.mouseReleased(event);
 	}
 
 	@Override

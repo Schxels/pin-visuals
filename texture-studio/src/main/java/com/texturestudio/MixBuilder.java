@@ -90,6 +90,8 @@ public final class MixBuilder {
 			}
 		}
 
+		count += copyEdits(out); // own pixel edits (Studio -> Pixel Editor) win over everything
+
 		if (mcmeta == null && !index.packs.isEmpty()) {
 			mcmeta = mcmetaFrom(index.packs.get(0));
 		}
@@ -153,6 +155,30 @@ public final class MixBuilder {
 		} catch (IOException | RuntimeException e) {
 			TextureStudioClient.LOGGER.warn("moon_phases konnte nicht zerlegt werden: {}", e.toString());
 		}
+	}
+
+	/** Folder with the textures edited in the Pixel Editor (same layout as a pack: assets/ns/textures/...). */
+	public static Path editsDir() {
+		return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("pinvisuals").resolve("edits");
+	}
+
+	private static int copyEdits(Path out) throws IOException {
+		Path dir = editsDir();
+		if (!Files.isDirectory(dir)) {
+			return 0;
+		}
+		int n = 0;
+		try (Stream<Path> walk = Files.walk(dir)) {
+			for (Path p : walk.filter(Files::isRegularFile).toList()) {
+				Path target = out.resolve(dir.relativize(p).toString());
+				Files.createDirectories(target.getParent());
+				Files.copy(p, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+				if (p.toString().endsWith(".png")) {
+					n++;
+				}
+			}
+		}
+		return n;
 	}
 
 	private static void write(Path root, String entry, byte[] data) throws IOException {

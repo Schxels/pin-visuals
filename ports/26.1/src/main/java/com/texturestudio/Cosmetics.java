@@ -30,7 +30,9 @@ public final class Cosmetics {
 		/** Coloured ghost when another player pops a totem (see PopChams); NONE = off. */
 		POP,
 		/** Coloured fog, mist and smoke around you (see Atmosphere); NONE = off. */
-		ATMO
+		ATMO,
+		/** Coloured line around other players, hidden by blocks (see PlayerOutline); NONE = off. */
+		OUTLINE
 	}
 
 	public record Item(String id, String name, Kind kind, int color) {
@@ -72,7 +74,8 @@ public final class Cosmetics {
 			new Item("sakura", "Cherry Blossom", Kind.CAPE, 0xFFF472B6),
 			new Item("ender", "Ender", Kind.CAPE, 0xFF10B981),
 			new Item("regenbogen", "Rainbow", Kind.CAPE, 0xFFFACC15),
-			new Item("eis", "Ice", Kind.CAPE, 0xFF7DD3FC));
+			new Item("eis", "Ice", Kind.CAPE, 0xFF7DD3FC),
+			new Item("custom", "My Design", Kind.CAPE, 0xFFA855F7));
 
 	public static final List<Item> HATS = List.of(
 			new Item("zylinder", "Top Hat", Kind.HAT, 0xFF22222A),
@@ -147,6 +150,17 @@ public final class Cosmetics {
 			new Item("firefly", "Firefly Night", Kind.ATMO, 0xFFFDE047),
 			new Item("void", "Void", Kind.ATMO, 0xFF4C1D95));
 
+	public static final List<Item> OUTLINE_COLORS = List.of(
+			new Item("cyan", "Cyan", Kind.OUTLINE, 0xFF22D3EE),
+			new Item("blue", "Blue", Kind.OUTLINE, 0xFF2F7BFF),
+			new Item("purple", "Purple", Kind.OUTLINE, 0xFFA855F7),
+			new Item("pink", "Pink", Kind.OUTLINE, 0xFFFF4FC3),
+			new Item("red", "Red", Kind.OUTLINE, 0xFFEF4444),
+			new Item("green", "Green", Kind.OUTLINE, 0xFF33E05A),
+			new Item("gold", "Gold", Kind.OUTLINE, 0xFFFFB800),
+			new Item("white", "White", Kind.OUTLINE, 0xFFFFFFFF),
+			new Item("rainbow", "Rainbow", Kind.OUTLINE, 0xFFFACC15));
+
 	// Aktuelle Auswahl (von der Konfiguration gespiegelt, damit das Rendern ohne Dateizugriff auskommt)
 	public static volatile String cape = NONE;
 	public static volatile String hat = NONE;
@@ -158,6 +172,7 @@ public final class Cosmetics {
 	public static volatile String hitColor = NONE;
 	public static volatile String popChams = NONE;
 	public static volatile String atmosphere = NONE;
+	public static volatile String outline = NONE;
 
 	private static final Map<String, Hat> HAT_MODELS = new HashMap<>();
 	private static final Map<String, Wing> WING_MODELS = new HashMap<>();
@@ -176,6 +191,7 @@ public final class Cosmetics {
 		hitColor = valid(c.hitColor, HIT_COLORS);
 		popChams = valid(c.popChams, POP_STYLES);
 		atmosphere = valid(c.atmosphere, ATMOSPHERES);
+		outline = valid(c.outline, OUTLINE_COLORS);
 	}
 
 	private static String valid(String id, List<Item> list) {
@@ -201,6 +217,7 @@ public final class Cosmetics {
 			case HIT -> HIT_COLORS;
 			case POP -> POP_STYLES;
 			case ATMO -> ATMOSPHERES;
+			case OUTLINE -> OUTLINE_COLORS;
 		};
 	}
 
@@ -216,12 +233,13 @@ public final class Cosmetics {
 			case HIT -> hitColor;
 			case POP -> popChams;
 			case ATMO -> atmosphere;
+			case OUTLINE -> outline;
 		};
 	}
 
 	/** Kinds that are effects, not things worn on the player model. */
 	public static boolean isEffect(Kind k) {
-		return k == Kind.KILL || k == Kind.LYRICS || k == Kind.ARMOR || k == Kind.SPOTIFY || k == Kind.HIT || k == Kind.POP || k == Kind.ATMO;
+		return k == Kind.KILL || k == Kind.LYRICS || k == Kind.ARMOR || k == Kind.SPOTIFY || k == Kind.HIT || k == Kind.POP || k == Kind.ATMO || k == Kind.OUTLINE;
 	}
 
 	public static Item item(Kind k, String id) {
@@ -277,8 +295,13 @@ public final class Cosmetics {
 				atmosphere = v;
 				c.atmosphere = v;
 			}
+			case OUTLINE -> {
+				outline = v;
+				c.outline = v;
+			}
 		}
 		c.save();
+		Features.presetChosen(k, v);
 	}
 
 	/** Gehoert dieser Render-Zustand zum eigenen Spieler (Welt und Inventar-Vorschau)? */
@@ -288,6 +311,9 @@ public final class Cosmetics {
 	}
 
 	public static Identifier capeTexture(String id) {
+		if ("custom".equals(id)) {
+			return CapeStore.texture();
+		}
 		return Identifier.fromNamespaceAndPath(TextureStudioClient.MOD_ID, "textures/cosmetics/cape_" + id + ".png");
 	}
 

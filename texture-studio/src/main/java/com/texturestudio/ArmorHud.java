@@ -27,7 +27,16 @@ public final class ArmorHud {
 		if (Cosmetics.NONE.equals(style) || mc.player == null || mc.player.isSpectator()) {
 			return;
 		}
-		draw(g, mc.font, mc.player, style, g.guiWidth(), g.guiHeight());
+		float sc = Features.armorScale.f() / 100f;
+		if (Math.abs(sc - 1f) < 0.01f) {
+			draw(g, mc.font, mc.player, style, g.guiWidth(), g.guiHeight());
+			return;
+		}
+		// scaled: draw in a smaller / bigger virtual screen
+		g.pose().pushMatrix();
+		g.pose().scale(sc, sc);
+		draw(g, mc.font, mc.player, style, Math.round(g.guiWidth() / sc), Math.round(g.guiHeight() / sc));
+		g.pose().popMatrix();
 	}
 
 	private static void draw(GuiGraphicsExtractor g, Font font, Player p, String style, int w, int h) {
@@ -45,9 +54,28 @@ public final class ArmorHud {
 		}
 		boolean compact = "compact".equals(style);
 		int panelW = compact ? 46 : 58;
-		int right = w / 2 - 91 - 6;
-		int x = right - panelW;
-		int y = h - 2 - n * ROW;
+		float sc = Features.armorScale.f() / 100f;
+		int hotbar = Math.round(91 / sc); // half the hotbar width in this (scaled) space
+		int x;
+		int y;
+		switch (Features.armorPos.i()) {
+			case 1 -> {
+				x = w / 2 + hotbar + 6;
+				y = h - 2 - n * ROW;
+			}
+			case 2 -> {
+				x = 6;
+				y = 6;
+			}
+			case 3 -> {
+				x = w - panelW - 6;
+				y = 6;
+			}
+			default -> {
+				x = w / 2 - hotbar - 6 - panelW;
+				y = h - 2 - n * ROW;
+			}
+		}
 		long now = System.currentTimeMillis();
 
 		if ("glass".equals(style)) {
@@ -79,7 +107,7 @@ public final class ArmorHud {
 			int left = max - s.getDamageValue();
 			float f = Math.max(0f, Math.min(1f, left / (float) max));
 			int col = color(f);
-			if (f < 0.15f && (now / 300) % 2 == 0) {
+			if (Features.armorBlink.b() && f < Features.armorWarn.f() / 100f && (now / 300) % 2 == 0) {
 				col = 0xFFFFFFFF; // blink when almost broken
 			}
 			int tx = x + 19;

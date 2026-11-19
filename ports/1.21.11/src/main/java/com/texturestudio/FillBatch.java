@@ -22,41 +22,32 @@ final class FillBatch implements GuiElementRenderState {
 
 	private static final Matrix3x2fc IDENTITY = new Matrix3x2f();
 
-	private int[] data = new int[6 * 256]; // x0, y0, x1, y1, colTop, colBottom
+	private float[] data = new float[4 * 256]; // x0, y0, x1, y1
+	private int[] cols = new int[256];
 	private int count;
-	private int minX = Integer.MAX_VALUE;
-	private int minY = Integer.MAX_VALUE;
-	private int maxX = Integer.MIN_VALUE;
-	private int maxY = Integer.MIN_VALUE;
+	private float minX = Float.MAX_VALUE;
+	private float minY = Float.MAX_VALUE;
+	private float maxX = -Float.MAX_VALUE;
+	private float maxY = -Float.MAX_VALUE;
 
 	boolean isEmpty() {
 		return count == 0;
 	}
 
-	void add(int x0, int y0, int x1, int y1, int color) {
-		if (x0 > x1) {
-			int t = x0;
-			x0 = x1;
-			x1 = t;
-		}
-		if (y0 > y1) {
-			int t = y0;
-			y0 = y1;
-			y1 = t;
-		}
+	void add(float x0, float y0, float x1, float y1, int color) {
 		if (x0 == x1 || y0 == y1) {
 			return;
 		}
-		if ((count + 1) * 6 > data.length) {
+		if (count + 1 > cols.length) {
 			data = java.util.Arrays.copyOf(data, data.length * 2);
+			cols = java.util.Arrays.copyOf(cols, cols.length * 2);
 		}
-		int i = count * 6;
+		int i = count * 4;
 		data[i] = x0;
 		data[i + 1] = y0;
 		data[i + 2] = x1;
 		data[i + 3] = y1;
-		data[i + 4] = color;
-		data[i + 5] = color;
+		cols[count] = color;
 		count++;
 		minX = Math.min(minX, x0);
 		minY = Math.min(minY, y0);
@@ -67,17 +58,16 @@ final class FillBatch implements GuiElementRenderState {
 	@Override
 	public void buildVertices(VertexConsumer v) {
 		for (int q = 0; q < count; q++) {
-			int i = q * 6;
+			int i = q * 4;
 			float x0 = data[i];
 			float y0 = data[i + 1];
 			float x1 = data[i + 2];
 			float y1 = data[i + 3];
-			int c1 = data[i + 4];
-			int c2 = data[i + 5];
-			v.addVertexWith2DPose(IDENTITY, x0, y0).setColor(c1);
-			v.addVertexWith2DPose(IDENTITY, x0, y1).setColor(c2);
-			v.addVertexWith2DPose(IDENTITY, x1, y1).setColor(c2);
-			v.addVertexWith2DPose(IDENTITY, x1, y0).setColor(c1);
+			int c = cols[q];
+			v.addVertexWith2DPose(IDENTITY, x0, y0).setColor(c);
+			v.addVertexWith2DPose(IDENTITY, x0, y1).setColor(c);
+			v.addVertexWith2DPose(IDENTITY, x1, y1).setColor(c);
+			v.addVertexWith2DPose(IDENTITY, x1, y0).setColor(c);
 		}
 	}
 
@@ -98,7 +88,9 @@ final class FillBatch implements GuiElementRenderState {
 
 	@Override
 	public ScreenRectangle bounds() {
-		return new ScreenRectangle(minX, minY, maxX - minX, maxY - minY);
+		int bx = (int) Math.floor(minX);
+		int by = (int) Math.floor(minY);
+		return new ScreenRectangle(bx, by, (int) Math.ceil(maxX) - bx, (int) Math.ceil(maxY) - by);
 	}
 
 	// ------------------------------------------------------------------ collector used by the screen
@@ -126,11 +118,77 @@ final class FillBatch implements GuiElementRenderState {
 		open = null;
 	}
 
+	// ---- software clip and window transform (used by the new menu: scrolling lists, open/close animation)
+	private static boolean clipOn;
+	private static int clipX0;
+	private static int clipY0;
+	private static int clipX1;
+	private static int clipY1;
+	private static boolean xfOn;
+	private static float xfScale = 1f;
+	private static float xfPx;
+	private static float xfPy;
+	private static float xfAlpha = 1f;
+
+	/** Fills are cut to this rectangle until {@link #noClip()}. */
+	static void clip(int x0, int y0, int x1, int y1) {
+		clipOn = true;
+		clipX0 = x0;
+		clipY0 = y0;
+		clipX1 = x1;
+		clipY1 = y1;
+	}
+
+	static void noClip() {
+		clipOn = false;
+	}
+
+	/** Batched fills are scaled around (px, py) and faded (alpha 0..1) until {@link #noTransform()}. */
+	static void transform(float scale, float px, float py, float alpha) {
+		xfOn = true;
+		xfScale = scale;
+		xfPx = px;
+		xfPy = py;
+		xfAlpha = Math.max(0f, Math.min(1f, alpha));
+	}
+
+	static void noTransform() {
+		xfOn = false;
+	}
+
 	/** Like g.fill, but batched while a batch is open and nothing is transformed or clipped. */
 	static void fill(GuiGraphics g, int x0, int y0, int x1, int y1, int color) {
+		if (x0 > x1) {
+			int t = x0;
+			x0 = x1;
+			x1 = t;
+		}
+		if (y0 > y1) {
+			int t = y0;
+			y0 = y1;
+			y1 = t;
+		}
+		if (clipOn) {
+			x0 = Math.max(x0, clipX0);
+			y0 = Math.max(y0, clipY0);
+			x1 = Math.min(x1, clipX1);
+			y1 = Math.min(y1, clipY1);
+		}
+		if (x0 >= x1 || y0 >= y1) {
+			return;
+		}
 		FillBatch b = open;
 		if (b != null && plain(g)) {
-			b.add(x0, y0, x1, y1, color);
+			if (xfOn) {
+				int a = Math.round((color >>> 24) * xfAlpha);
+				if (a <= 0) {
+					return;
+				}
+				b.add(xfPx + (x0 - xfPx) * xfScale, xfPy + (y0 - xfPy) * xfScale, xfPx + (x1 - xfPx) * xfScale,
+						xfPy + (y1 - xfPy) * xfScale, (a << 24) | (color & 0xFFFFFF));
+			} else {
+				b.add(x0, y0, x1, y1, color);
+			}
 		} else {
 			flush(g).fill(x0, y0, x1, y1, color);
 		}

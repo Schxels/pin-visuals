@@ -19,7 +19,6 @@ import net.minecraft.world.phys.Vec3;
 public final class LyricsHud {
 
 	/** Height of the lyrics above the horizon in degrees. */
-	private static final float ELEVATION = 34f;
 
 	private static int shownIndex = -1;
 	private static long changedAt;
@@ -34,6 +33,11 @@ public final class LyricsHud {
 
 	public static void extract(GuiGraphicsExtractor g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
+		if (Features.lyricMode != null && Features.lyricMode.i() == 1) {
+			anchorYaw = Float.NaN;
+			LyricsSky.extract(g, delta);
+			return;
+		}
 		// (with F1 the HUD, and so this element, is not drawn at all)
 		if (mc.player == null || !Lyrics.enabled() || Lyrics.state() != Lyrics.State.READY) {
 			anchorYaw = Float.NaN;
@@ -62,7 +66,7 @@ public final class LyricsHud {
 		float vfov = mc.options.fov().get();
 		double halfV = Math.toRadians(vfov / 2f);
 		double halfH = Math.atan(Math.tan(halfV) * w / (double) h);
-		double angV = Math.toRadians(ELEVATION + mc.player.getXRot(pt));
+		double angV = Math.toRadians(Features.lyricHeight.f() + mc.player.getXRot(pt));
 		if (Math.abs(angV) > halfV + 0.4) {
 			return;
 		}
@@ -76,7 +80,7 @@ public final class LyricsHud {
 			return;
 		}
 
-		long pos = Lyrics.position() + 150; // a little early reads nicer
+		long pos = Lyrics.position() + 150 + Features.lyricOffset.i(); // a little early reads nicer
 		int idx = -1;
 		for (int i = 0; i < lines.size(); i++) {
 			if (lines.get(i).timeMs() <= pos) {
@@ -103,7 +107,7 @@ public final class LyricsHud {
 		long end = idx + 1 < lines.size() ? lines.get(idx + 1).timeMs() : start + 4000;
 		float sung = end > start ? clamp((pos - start) / (float) (end - start)) : 1f;
 
-		float big = Math.max(1f, Math.min(1.6f, w * 0.7f / Math.max(1, font.width(cur))));
+		float big = Math.max(1f, Math.min(1.6f, w * 0.7f / Math.max(1, font.width(cur)))) * Features.lyricScale.f() / 100f;
 		float yCur = cy + (1f - slide) * 8f;
 
 		final String line = cur;

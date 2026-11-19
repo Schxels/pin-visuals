@@ -351,6 +351,8 @@ public final class KillEffects {
 	}
 
 	private static void sound(ClientLevel level, double x, double y, double z, SoundEvent s, float vol, float pitch) {
-		level.playLocalSound(x, y, z, s, SoundSource.PLAYERS, vol, pitch, false);
+		if (Features.killSound.b()) {
+			level.playLocalSound(x, y, z, s, SoundSource.PLAYERS, vol * Features.killVolume.f() / 100f, pitch, false);
+		}
 	}
 }
